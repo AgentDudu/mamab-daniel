@@ -24,3 +24,14 @@ Plan: `REPLICATION_PLAN.md`. Contract for all phases after Phase 1: `specs/paper
 - numba 0.68 caveat found: `np.random.default_rng` is **not** supported inside `@njit`; use legacy `np.random.seed`/`np.random.random()` in the kernel, or pre-generate uniforms outside. Carry into Phase 2.
 - Not done here (deferred by plan): `specs/paper_spec.md` (Phase 1), engine code (Phase 2), throughput benchmark (Phase 2 gate).
 - **Next action:** Phase 1 — transcribe Alg 1/2/3 + params into `specs/paper_spec.md` from `paper_html.txt` (~lines 350–640) and `paper.txt`; record the §6 open choices explicitly; after that, never read the PDF again.
+
+### Phase 1 — spec freeze — PASS (2026-10-11)
+
+- `specs/paper_spec.md` written from `paper_html.txt` (LaTeX `alttext`), cross-checked against `paper.txt`. PDF never opened.
+- Alg 1 (18 lines), Alg 2 `Get-Rec` (6 lines), Alg 3 `Update-Blocklists` (5 lines) transcribed verbatim; §0 grep map records the exact `paper_html.txt` line ranges so later phases grep instead of re-reading.
+- 16 numbered conventions `C1`–`C16` resolve the paper's gaps (UCB `0/0` at t=1, `A_0`, tie-breaks, synchronous `B_j`, initial `U/L`, sticky-set resampling, empty candidate set, `⌈j^η⌉` overflow cap, malicious agents pull no arms, per-trial paired ratio, 50 trials, oracle/no-comm definitions). Each is marked paper-derived or *our choice*.
+- Params confirmed: `n=25 β=2 α=4 S=⌈K/n⌉`, `μ1=0.95 μ2=0.85 μ3..K~U[0,0.85]`, `T=1e5`, 50 trials. α=4 clears the Thm-2 bound `α>(3+(1+βη)/β)/2` for η=2/3/4 (2.75/3.25/3.75).
+- Table 1 (12 rows × 4 cells) transcribed; `tests/test_spec_table1.py` parses the table out of `paper_html.txt` and asserts equality with the spec table — guards the transcription. `pytest tests/` → 3 passed.
+- Figures 1–2 are raster in the PDF: no numeric axis data extractable → §11 records the qualitative landmarks (ratio <0.5, oracle≈proposed≪no_comm, S-curve, best-arm discard at T≈6e4 / 4e4).
+- Open risk carried forward: MovieLens cohort + arm selection + softImpute rank/λ are **not in the paper** (§12) — Phase 7 must record ours and run a second cohort if time allows.
+- **Next action:** Phase 2 — `src/mabamab/engine.py` + `experiments/bench_engine.py` (≥1M pulls/s gate), then Phase 3 gosine parity.
