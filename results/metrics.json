@@ -1,0 +1,16 @@
+{
+  "engine_throughput": {
+    "K": 100,
+    "n": 25,
+    "S": 4,
+    "alpha": 4.0,
+    "beta": 2.0,
+    "T": 100000,
+    "trials": 50,
+    "pulls": 125000000,
+    "seconds": 5.0,
+    "pulls_per_s": 24999885.5,
+    "mean_regret": 905.6002,
+    "std_regret": 72.5834
+  }
+}
