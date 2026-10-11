@@ -1,0 +1,2 @@
+K,n,S,alpha,beta,T,trials,pulls,seconds,pulls_per_s,mean_regret,std_regret
+100,25,4,4.0,2.0,100000,50,125000000,5.0,24999885.5,905.6002,72.5834
