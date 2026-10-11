@@ -1,0 +1,16 @@
+# env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# paper source material (large / binary) — stays local; grep targets are paper.txt & paper_html.txt
+2007.03812v3.pdf
+paper.html
+
+# downloads (MovieLens etc.)
+data/
+
+# figures are regenerable from results/*.csv
+*.png

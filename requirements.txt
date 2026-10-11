@@ -1,0 +1,7 @@
+# Pinned from the Phase-0 venv (Python 3.14.8, Windows x64). Verified importable together.
+numpy==2.5.4
+scipy==1.18.1
+matplotlib==3.11.2
+pandas==3.0.6
+numba==0.68.0
+pytest==9.1.1

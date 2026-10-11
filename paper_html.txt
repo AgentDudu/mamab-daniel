@@ -1,0 +1,3370 @@
+ 
+ 
+ 
+ Robust Multi-Agent Multi-Armed Bandits 
+ 
+ 
+ 
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Report GitHub Issue 
+ × 
+ 
+
+ 
+ Title: 
+ 
+
+ Content selection saved. Describe the issue below: 
+
+ Description: 
+ 
+ 
+
+ 
+ Submit without GitHub 
+ Submit in GitHub 
+ 
+ 
+ 
+ 
+ arXiv is now an independent nonprofit! 
+ Learn more 
+ × 
+ 
+
+ 
+ 
+ 
+ Back to arXiv 
+ 
+ 
+ 
+ 
+ Why HTML? 
+ 
+ 
+ 
+ 
+ Report Issue 
+ 
+ 
+ 
+ 
+ 
+ 
+ Back to Abstract 
+ 
+ 
+ 
+ 
+ 
+ 
+ Download PDF 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Abstract. 
+ 1 Introduction 
+ 
+ 1.1 Our contributions 
+ 1.2 Related Work 
+ 1.3 Organization 
+ 
+ 2 Preliminaries 
+ 3 General algorithm 
+ 4 Existing algorithm and lower bound 
+ 5 Proposed algorithm and upper bound 
+ 6 Experiments 
+ 
+ 6.1 Synthetic data 
+ 6.2 Real data 
+ 
+ 7 Conclusion 
+ References 
+ A Proof of Theorem 
+ B Proofs of lemmas for Theorem 
+ 
+ B.1 Late regret from sticky arms (proof of Lemma ) 
+ B.2 Intermediate regret from non-sticky arms (proof of Lemma ) 
+ B.3 Late regret from non-sticky arms (proof of Lemma ) 
+ B.4 Early regret (proof of Lemma ) 
+ B.5 Auxiliary inequalities 
+ 
+ C Proof of Theorem 
+ D Experimental details 
+ 
+ 
+ 
+ 
+ 
+ License: arXiv.org perpetual non-exclusive license
+ 
+ 
+arXiv:2007.03812v3 [cs.LG] 10 Oct 2021 
+ 
+ 
+ Robust Multi-Agent Multi-Armed Bandits 
+ 
+ 
+ Daniel Vial
+ 
+ email: dvial@utexas.edu 
+ 
+ Affiliation:  University of Texas at Austin 
+ 
+ , 
+ Sanjay Shakkottai
+ 
+ email: sanjay.shakkottai@utexas.edu 
+ 
+ Affiliation:  University of Texas at Austin 
+ 
+ and 
+ R. Srikant
+ 
+ email: rsrikant@illinois.edu 
+ 
+ Affiliation:  University of Illinois at Urbana-Champaign 
+ 
+
+ Abstract. 
+ 
+ Recent works have shown that agents facing independent instances of a stochastic K -armed bandit can collaborate to decrease regret. However, these works assume that each agent always recommends their individual best-arm estimates to other agents, which is unrealistic in envisioned applications (machine faults in distributed computing or spam in social recommendation systems). Hence, we generalize the setting to include n honest and m malicious agents who recommend best-arm estimates and arbitrary arms, respectively. We first show that even with a single malicious agent, existing collaboration-based algorithms fail to improve regret guarantees over a single-agent baseline. We propose a scheme where honest agents learn who is malicious and dynamically reduce communication with (i.e., “block”) them. We show that collaboration indeed decreases regret for this algorithm, assuming m is small compared to K but without assumptions on malicious agents’ behavior, thus ensuring that our algorithm is robust against any malicious recommendation strategy. 
+ 
+ 
+ 
+ 1. Introduction 
+
+ 
+ Multi-armed bandits (MABs) are classical models for online learning and decision making. In this paper, we consider a setting where a group of agents collaborates to solve a stochastic MAB. More precisely, agents face separate instances of the same MAB and collaborate – via limited communication – to minimize per-agent regret. As motivation, we describe two applications: 
+ 
+ (1) 
+ 
+ Consider a search engine that displays ads alongside search results, and suppose search requests are processed by a large number of machines/agents. In particular, each machine processes a subset of requests and must decide which ad to display (to maximize, for example, the click-through rate). Here the decision problem is naturally modeled as a MAB, with ads as arms. The machines can collaborate by exchanging information (for example, observed click-through rates), but communication is limited by bandwidth. 
+ 
+ (2) 
+ 
+ Consider an online recommendation system, e.g., for restaurants. Each user/agent can decide which restaurant to visit based on their past dining experiences, which again can be modeled as a MAB (with restaurants as arms). However, the users can also collaborate by writing and reading reviews. Here two users communicate if one reads the other’s review, and communication is limited in the sense that each user likely reads a small fraction of all reviews. 
+ 
+ 
+ 
+ 
+ In such applications, it is infeasible (or at least inefficient) for a single agent to explore all arms. Hence, several algorithms have been proposed in which each agent only explores a small subset of active arms and occasionally recommends a best-arm estimate to another agent ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) . For example, ( Chawla et al., 2020b ) has o(T) communication rounds per T arm pulls, and at each round, each agent receives a best-arm estimate from one other agent, adds this estimate to its active set, and discards a poorly-performing active arm. Thus, communication is infrequent, pairwise, and bit-limited, modeling the limitations in our motivating applications. Despite these limitations, ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) show that the true best arm eventually spreads to all agents’ active sets via recommendations. Combined with the fact that each agent only explores a small number of active arms, per-agent regret is smaller than in the single-agent MAB setting. 
+ 
+ 
+ However, the regret guarantees from ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) require all agents to truthfully report best-arm estimates to other agents, which does not occur in practice. For example, spam reviews can be modeled as bad arm recommendations in the restaurant application, and machines will occasionally fail and stop communicating altogether in the search engine application. In light of these concerns, we study a more realistic setting in which n honest agents explore active arm sets and recommend best-arm estimates (similar to ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) ), but m malicious agents recommend arbitrary arms. Similar to ( Chawla et al., 2020b ) , we only permit o(T) pairwise arm recommendations per T arm pulls; for simplicity, we also assume the set of all agents (honest and malicious) is connected by a complete graph. 
+ 
+ 
+ 1.1. Our contributions 
+
+ 
+ Lower bound: We show the algorithm from ( Chawla et al., 2020b ) (the state-of-the-art in the case m=0 , where it incurs O((K/n)\log(T)/\Delta) regret), fails in this generalized setting, in the sense that even a single malicious agent negates the benefit of collaboration . More precisely, we prove that for any m\in\mathbb{N} , honest agents incur \Omega(K\log(T)/\Delta) regret (where K is the number of arms, T is the horizon, and \Delta is the arm gap), identical in an order sense to a single-agent baseline where each agent plays the MAB in isolation (see Theorem 1 and Remark 2 ). This occurs because honest agents using the algorithm from ( Chawla et al., 2020b ) trust all recommendations, so malicious agents can recommend, and subsequently force honest agents to explore, all suboptimal arms. In short, the algorithms from ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) rely on the idealized assumption that all agents are fully cooperative, and they break down when this assumption fails. 
+ 
+ 
+ Blocking algorithm: Owing to the failure of ( Chawla et al., 2020b ) in the generalized setting, we propose an algorithm using a simple idea called blocking , roughly defined as follows: if an agent recommends an arm at time t\in\{1,\ldots,T\} and the arm subsequently performs poorly, ignore the agent’s recommendations until time t^{2} , i.e., “block” the agent. These increasing blocking periods t^{2} balance two competing forces (see Remarks 4 and 12 ). First, honest agents who mistakenly recommend bad arms at small t (which occurs due to noise in the rewards for t=o(\Delta^{-2}) ( Audibert and
+Bubeck, 2010 ) ) are not ignored for too long, so they can later help spread the best arm to other honest agents’ active sets. Second, malicious agents who repeatedly recommend bad arms are punished with increasing severity (a bad recommendation at t blocks them until t^{2} , then until t^{4} , then until t^{8} , etc.), which reduces the number of bad arms they can force honest agents to explore. Conceptually, this tradeoff means that in the presence of malicious agents, honest agents face an explore-exploit dilemma when deciding who to communicate with – in addition to the standard such dilemma when deciding which arm to pull – which makes learning more difficult than in the cooperative setting (see Remark 5 ). 
+ 
+ 
+ Upper bound: For the proposed algorithm, we show that regret is upper bounded by O((m+K/n)\log(T)/\Delta) . Thus, our algorithm is robust against malicious agents, in the sense that collaboration reduces regret from the single-agent baseline if m is small compared to K (see Theorem 2 and Remark 7 ). More precisely, the multiplicative constant in our upper bound is \min\{m+K/n,K\} , i.e., for large m we also recover the O(K\log(T)/\Delta) single-agent baseline. This demonstrates that our blocking approach, and in particular its polynomial-length blocking periods, properly balances the aforementioned explore-exploit communication tradeoff. We also note that, somewhat counterintuitively, our algorithm can be robust when m is much larger than n (see Remark 9 ). 
+ 
+ 
+ Worst-case robustness: Our regret upper bound requires no assumption on the behavior of malicious agents , i.e., on how they recommend arms (besides a mild measurability condition). Hence, our algoithm is robust against the worst-case behavior of such agents. This is critical because the definition of ‘‘malicious’’ is highly domain-dependent (consider the aforementioned spam review and faulty machine applications 1 1 
+ 1 
+ 
+ 
+ 
+ “Malicious” is something of a misnomer when discussing unintentional failures like faulty machines; we use this word to emphasize the worst-case flavor of our approach. ). For example, our algorithm is robust against groups of malicious agents who collude, “omniscient" malicious agents who observe and exploit the arm pulls and rewards of all honest agents, “deceitful" malicious agents who initially report good arms to build credibility but later abuse this credibility by reporting bad arms, and any combination thereof. 
+ 
+ 
+ Three-regime analysis: We show that as time progresses, the proposed algorithm passes through three distinct regimes (see Remark 12 ). We describe them out of order for ease of exposition. 
+ 
+ • 
+ 
+ Early regime: As discussed above, honest agents initially make mistakes, block one another, and prevent the best arm from spreading. Nevertheless, we show that polynomial-length blocking is mild enough to allow the best arm to spread . More precisely, we show that after some almost-surely finite time, i.e., one that does not depend on the horizon T (and denoted by A_{\tau} below), the best arm is active and correctly identified by all honest agents. 
+ 
+ • 
+ 
+ Late regime: After time A_{\tau}\vee T^{1/K} , honest agents have identified the best arm, so they block any malicious agent who recommends a bad arm. By our blocking schedule, this means a malicious agent can only recommend bad arms at times T^{1/K},T^{2/K},T^{4/K} , etc. – for a total of \log_{2}K bad arms. Thus, as soon as time becomes polynomial in T , malicious agents are only contacted finitely often as T\rightarrow\infty . 
+ 
+ • 
+ 
+ Intermediate regime: In contrast, between A_{\tau} and T^{1/K} , malicious agents can recommend bad arms at A_{\tau},A_{\tau}^{2},A_{\tau}^{4} , etc. – \log\log T of them as T\rightarrow\infty . However, since the best arm is active after A_{\tau} , this is roughly equivalent to playing K arms for horizon T^{1/K} , which contributes negligible regret K\log(T^{1/K})/\Delta=\log(T)/\Delta . Thus, before time is polynomial in T , malicious agents are contacted infinitely often, but the effective horizon is too small to appreciably increase regret. 
+ 
+ 
+ This analysis is novel compared to the simpler cooperative case, in which active arm sets are eventually fixed and one can treat long-term regret similar to a single-agent MAB (see Remark 13 ). 
+ 
+ 
+ Remark 1. 
+ 
+ Our approach of increasing blocking periods is similar in spirit to the content moderation policies of several online platforms. For example, Stack Exchange suggests suspensions of 7, 30, and 365 days for successive rule violations ( Stack Exchange, [n.d.] ) , while Wikipedia blocks users “longer for persistent violations” ( Wikipedia, [n.d.] ) . Thus, our paper provides a formal model and a rigorous analysis of such policies. 
+ 
+ 
+ 
+ 
+ 1.2. Related Work 
+
+ 
+ Multi-agent MABs with malicious agents were previously studied in ( Awerbuch and
+Kleinberg, 2008 ) (there called dishonest agents), but there are two fundamental differences between this work and ours. First, ( Awerbuch and
+Kleinberg, 2008 ) considers non-stochastic/adversarial MABs ( Auer
+et al., 1995 ) , in contrast to the stochastic MABs of our work. Second, ( Awerbuch and
+Kleinberg, 2008 ) assumes each agent communicates with all the others between each arm pull, while our algorithm has o(T) pairwise communications per T arm pulls, which models the limited communication in the motivating applications discussed above. We also note multi-agent non-stochastic MABs without malicious agents were studied in ( Cesa-Bianchi et al., 2016 ; Kanade
+et al., 2012 ; Seldin et al., 2014 ) . 
+ 
+ 
+ We are not aware of prior work studying multi-agent stochastic MABs with malicious agents and limited communication (as our paper does). However, papers including ( Chawla
+et al., 2020a ; Sankararaman et al., 2019 ; Buccapatnam
+et al., 2015 ; Chakraborty
+et al., 2017 ; Kolla
+et al., 2018 ; Lalitha and
+Goldsmith, 2020 ; Martínez-Rubio et al., 2019 ; Landgren
+et al., 2016 ) have studied the fully cooperative case, i.e., the case m=0 . The aforementioned ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) have settings identical to ours, except for our inclusion of malicious agents. We discuss ( Chawla et al., 2020b ) in detail in Sections 3 and 4 . ( Sankararaman et al., 2019 ) has two shortcomings relative to ( Chawla et al., 2020b ) : agents need to know the arm gap \Delta_{2} and the regret guarantee is weaker than ( Chawla et al., 2020b ) when m=0 . The remaining papers all allow more communication than ( Chawla et al., 2020b ) . Namely, ( Buccapatnam
+et al., 2015 ; Chakraborty
+et al., 2017 ) allow broadcasts instead of pairwise communication, ( Kolla
+et al., 2018 ; Lalitha and
+Goldsmith, 2020 ; Martínez-Rubio et al., 2019 ) allow communication between each arm pull instead of o(T) times per T pulls, and agents in ( Landgren
+et al., 2016 ) communicate arm mean estimates instead of indices of estimated best arms (note the former requires more bandwidth per transmission as T grows, while the latter requires \log K bits independent of T ). In summary, ( Chawla et al., 2020b ) features the best regret guarantee and least restrictive assumptions for fully-cooperative multi-agent stochastic MABs. We thus focus on making this particular algorithm robust against malicious agents and use ( Chawla et al., 2020b ) as a point of comparison throughout the paper. Nevertheless, we believe our blocking idea can be used to make other algorithms designed for the fully cooperative case more robust against malicious agents. 
+ 
+ 
+ The larger multi-agent bandits literature includes ( Hillel et al., 2013 ; Szörényi et al., 2013 ; Chawla
+et al., 2020a ; Korda
+et al., 2016 ; Shahrampour et al., 2017 ) , which all have fundamental differences from our work. Agents in ( Hillel et al., 2013 ; Szörényi et al., 2013 ) aim to minimize simple instead of cumulative regret. ( Chawla
+et al., 2020a ; Korda
+et al., 2016 ) consider multi-agent contextual bandits instead of stochastic MABs. Agents in ( Shahrampour et al., 2017 ) face MABs with different reward distributions instead of separate instances of the same MAB. 
+ 
+ 
+ Finally, we distinguish our setting from two less related lines of work. First, papers including ( Anandkumar et al., 2011 ; Avner and Mannor, 2014 ; Bistritz and
+Leshem, 2018 ; Kalathil
+et al., 2014 ; Liu et al., 2012 ; Liu
+et al., 2020 ; Mansour
+et al., 2018 ; Rosenski
+et al., 2016 ) consider competitive agents, meaning that rewards are smaller if several agents simultaneously pull an arm; in contrast, we assume rewards are independent across honest agents. Second, papers including ( Gupta
+et al., 2019 ; Kapoor
+et al., 2019 ; Liu and Shroff, 2019 ; Lykouris
+et al., 2018 ) study MABs with adversarial noise, where the agent’s reward observations are corrupted by an adversary. This behavior is different from that of malicious agents in our work, who recommend bad arms but do not alter reward observations. 
+ 
+ 
+ 
+ 1.3. Organization 
+
+ 
+ The remainder of the paper is organized as follows. Section 2 discusses preliminaries. In Section 3 , we define a general algorithm for multi-agent MABs. Sections 4 and 5 analyze two cases of this algorithm: the one from ( Chawla et al., 2020b ) and the proposed algorithm. In Section 6 , we provide numerical results. We close in Section 7 . 
+ 
+ 
+ 
+ 
+ 2. Preliminaries 
+
+ 
+ We consider a stochastic MAB with K arms, denoted 1,\ldots,K . Arm k\in\{1,\ldots,K\} generates \text{Bernoulli}(\mu_{k}) rewards for some \mu_{k}\in(0,1) , independent across agents and across successive pulls of the arm. 2 2 
+ 2 
+ 
+ 
+ 
+ We only require the Bernoulli assumption to use the Hoeffding bound, so the results hold when rewards are [0,1] -valued and (with minor modification) subgaussian. We assume the arms are labeled such that \mu_{1}\geq\cdots\geq\mu_{K} . We call 1 the best arm and assume it is unique, i.e., \mu_{1}>\mu_{2} . For each arm k , we let \Delta_{k}=\mu_{1}-\mu_{k}\in(0,1) denote the k -th arm gap, i.e., the difference in means of the best arm and arm k . 
+ 
+ 
+ Our multi-agent system contains n+m total agents ( n,m\in\mathbb{N} ), who are connected by a complete graph and divided into two types. Agents 1,\ldots,n , called honest agents , collaborate (by running a prescribed algorithm) to minimize their individual cumulative regret. More specifically, each i\in\{1,\ldots,n\} faces a separate instance of the MAB defined above and aims to minimize 
+ 
+
+ 
+ (1) 
+ 
+ \mathbb{E}R_{T}^{(i)}=\sum_{t=1}^{T}\mathbb{E}(\mu_{1}-\mu_{I_{t}^{(i)}})=\sum_{t=1}^{T}\mathbb{E}\Delta_{I_{t}^{(i)}}, 
+ 
+ 
+ where T\in\mathbb{N} is a time horizon unknown to i and I_{t}^{(i)}\in\{1,\ldots,K\} is the arm that i pulls at time t . Here and moving forward, all random variables are defined on a common probability space (\Omega,\mathcal{F},\mathbb{P}) , and expectation is over all randomness (rewards and the forthcoming communication protocol). In contrast to honest agents, agents n+1,\ldots,n+m need not run the prescribed algorithm. We call them malicious agents and formally define their behavior in Section 3 . Of course, honest agents do not know who is honest and who is malicious; we make no such assumption on malicious agents. 
+ 
+ 
+ 
+ 3. General algorithm 
+
+ 
+ We next describe a regret minimization scheme for multi-agent MABs with blocking, defined from the perspective of honest agent i in Algorithm 1 (we assume all i\in\{1,\ldots,n\} locally execute the algorithm). Time is discrete and indexed by t , where (as above) i pulls arm I_{t}^{(i)} at each t\in\mathbb{N} . During certain time slots A_{j}\in\mathbb{N} , hereafter called communication epochs , agents communicate. In particular, at time A_{j} , i solicits an arm recommendation from a random agent not belonging to a blocklist P_{j}^{(i)}\subset\{1,\ldots,n+m\} , i.e., a subset of agents i is unwilling to communicate with. The algorithm from ( Chawla et al., 2020b ) is the special case where P_{j}^{(i)}=\emptyset\ \forall\ i,j , i.e., where no blocking occurs (see Section 4 ). In contrast, our algorithm dynamically modifies these blocklists using subroutine Update-Blocklists , in hopes of reducing communication with malicious agents (see Section 5 ). In this section, we leave Update-Blocklists unspecified, and we outline Algorithm 1 as a general approach encompassing both algorithms. 
+ 
+ 
+ Initialization: i begins by initializing communication epochs A_{j}=j^{\beta} , where \beta>1 is an input to the algorithm. Thus, agents communicate o(T) times per T arm pulls, as discussed in the introduction. Moving forward, we call the period between times A_{j-1}+1 and A_{j} (inclusive) the j -th phase . Line 1 also initializes the blocklists to empty sets, meaning i is a priori willing to communicate with anyone. In Line 1 , i initializes the current phase j=1 and a subset of arms S_{j}^{(i)}=\hat{S}^{(i)}\cup\{U_{j}^{(i)},L_{j}^{(i)}\} . Here \hat{S}^{(i)}\subset\{1,\ldots,K\} is an input to the algorithm with size |\hat{S}^{(i)}|=S , and U_{j}^{(i)},L_{j}^{(i)} are two arms not belonging to \hat{S}^{(i)} . We call \hat{S}^{(i)} sticky arms, as i will explore these arms for the duration of the algorithm. In contrast, the arms U_{j}^{(i)} and L_{j}^{(i)} will be updated across phases j . We define this update shortly; for now, we note U_{j}^{(i)} and L_{j}^{(i)} will represent well- and poorly-performing non-sticky arms, respectively. 
+ 
+ 
+ Pulling active arms: At time t\in\{A_{j-1}+1,\ldots,A_{j}\} , i pulls the arm I_{t}^{(i)}\in S_{j}^{(i)} that maximizes the \text{UCB}(\alpha) index ( Auer
+et al., 2002 ; Bubeck
+et al., 2011 ) (Line 1 ). Here \alpha>0 is an input to the algorithm which trades off exploration and exploitation (in the same manner as the single-agent setting), and \hat{\mu}_{k}^{(i)}(t-1) and T_{k}^{(i)}(t-1) are the average reward and number of plays of arm k for agent i before time t . We emphasize that I_{t}^{(i)}\in S_{j}^{(i)} , i.e., i only pulls arms from S_{j}^{(i)} during phase j . Thus, we call S_{j}^{(i)} the active set and its elements active arms . 
+ 
+ 
+ Updating active arms: At epoch A_{j} , i records the active arm that it played most frequently in phase j (denoted B_{j}^{(i)} in Line 1 ), calls the aforementioned Update-Blocklists subroutine (Line 1 , left unspecified for this generic algorithm), and solicits an arm recommendation R_{j}^{(i)} from agent H_{j}^{(i)} (Line 1 , to be discussed shortly). If this recommendation is currently active, i ’s active set remains unchanged for the next phase (Line 1 ). Otherwise, i ’s new active set contains its sticky set, its best non-sticky arm, and the recommendation. More precisely, i defines the non-sticky arms U_{j+1}^{(i)},L_{j+1}^{(i)} for the next phase to be the most-played non-sticky from the current phase (Line 1 ) and the recommendation (Line 1 ), respectively, and S_{j+1}^{(i)} as the union of these arms and the sticky set (Line 1 ). We emphasize that the active set S_{j}^{(i)} always includes the sticky set \hat{S}^{(i)} , but otherwise varies with the phase j ; the hope is that 1\in S_{j}^{(i)}\ \forall\ i eventually (i.e., eventually the best arm spreads to all honest agents, who begin enjoying logarithmic regret). 
+ 
+ 
+ Arm recommendations: We model pairwise communication using Algorithm 2 , which proceeds as follows. A non-blocked agent is chosen uniformly at random (Line 2 of Algorithm 2 ). If this agent is honest, it recommends its current best-arm estimate (i.e., its most played arm in the current phase); if malicious, it recommends an arbitrary arm (Lines 2 and 2 , respectively). Note Algorithm 2 is “black-boxed”, i.e., i provides inputs i,j,P_{j}^{(i)} and observes outputs H_{j}^{(i)},R_{j}^{(i)} , but does not locally execute Algorithm 2 (which is impossible, since i does not know who is honest and who is malicious). We also note the communication in Algorithm 2 is where we use the complete graph assumption. 
+ 
+ 
+ Malicious agent behavior: More precisely, if i contacts malicious agent i^{\prime} at phase j , i receives a random arm distributed as \nu_{j,i}^{(i^{\prime})} , where \nu_{j,i}^{(i^{\prime})} is any \mathcal{F} -measurable mapping from \Omega to the set of distributions over \{1,\ldots,K\} (i.e., \nu_{j,i}^{(i^{\prime})} is a random distribution over arms). Besides this measurability condition (which ensures that expected regret is well-defined), we make no assumptions on malicious agent behavior. Thus, malicious recommendations are essentially arbitrary. Note this permits the case where malicious agents run Algorithm 1 and recommend best-arm estimates, i.e., where they behave as honest agents. Moving forward, we call \{\nu_{j,i}^{(i^{\prime})}\}_{j\in\mathbb{N},i\in\{1,\ldots,n\}} the strategy of malicious agent i^{\prime} , as it defines how i^{\prime} interacts with all honest agents i at all phases j . 
+ 
+ 
+ Algorithm 1 \texttt{Multi-Agent-MAB-With-Blocking}(\alpha,\beta,\hat{S}^{(i)}) (executed by each honest agent i\in\{1,\ldots,n\} ) 
+ 
+ Input: UCB parameter \alpha>0 , phase duration parameter \beta>1 , sticky set \hat{S}^{(i)}\subset\{1,\ldots,K\} with |\hat{S}^{(i)}|=S 
+ 
+ 
+ 1 
+ Initialize A_{j^{\prime}}=\lceil(j^{\prime})^{\beta}\rceil,P_{j^{\prime}}^{(i)}=\emptyset\ \forall\ j^{\prime}\in\mathbb{N} 
+
+ 
+ 
+ 2 
+ Set j=1 , let U_{j}^{(i)},L_{j}^{(i)} be distinct elements of \{1,\ldots,K\}\setminus\hat{S}^{(i)} , set S_{j}^{(i)}=\hat{S}^{(i)}\cup\{U_{j}^{(i)},L_{j}^{(i)}\} 
+
+ 
+ 
+ 3 
+ for t\in\mathbb{N} do 
+ 
+      
+ 4 
+ Pull \displaystyle I_{t}^{(i)}\in\argmax_{k\in S_{j}^{(i)}}\hat{\mu}_{k}^{(i)}(t-1)+\sqrt{\frac{\alpha\log(t)}{T_{k}^{(i)}(t-1)}} 
+
+ 
+      
+ 5 
+ if t=A_{j} then 
+ 
+           
+ 6 
+ \displaystyle B_{j}^{(i)}=\argmax_{k\in S_{j}^{(i)}}T_{k}^{(i)}(A_{j})-T_{k}^{(i)}(A_{j-1}) (most played active arm in this phase) 
+
+ 
+           
+ 7 
+ \{P_{j^{\prime}}^{(i)}\}_{j^{\prime}=j}^{\infty}\leftarrow\texttt{Update-Blocklist}(\{P_{j^{\prime}}^{(i)}\}_{j^{\prime}=j}^{\infty}) (algorithm from ( Chawla et al., 2020b ) performs no update; we propose using Algorithm 3 ) 
+
+ 
+           
+ 8 
+ (H_{j}^{(i)},R_{j}^{(i)})=\texttt{Get-Rec}(i,j,P_{j}^{(i)}) (see Algorithm 2 ) 
+
+ 
+           
+ 9 
+ if R_{j}^{(i)}\in S_{j}^{(i)} (recommendation already active) then 
+ 
+                
+ 10 
+ S_{j+1}^{(i)}=S_{j}^{(i)} (same active set) 
+
+ 
+           
+ 11 
+ else 
+ 
+                
+ 12 
+ \displaystyle U_{j+1}^{(i)}=\argmax_{k\in\{U_{j}^{(i)},L_{j}^{(i)}\}}T_{k}^{(i)}(A_{j})-T_{k}^{(i)}(A_{j-1}) (most played non-sticky active arm) 
+
+ 
+                
+ 13 
+ L_{j+1}^{(i)}=R_{j}^{(i)} (replace least played non-sticky active arm with recommendation) 
+
+ 
+                
+ 14 
+ S_{j+1}^{(i)}=\hat{S}^{(i)}\cup\{U_{j+1}^{(i)},L_{j+1}^{(i)}\} (new active set) 
+
+ 
+           
+ 15 
+ end if
+ 
+           
+ 16 
+ j\leftarrow j+1 (increment phase) 
+
+ 
+      
+ 17 
+ end if
+ 
+ 
+ 18 
+ end for
+ 
+ 
+ 
+ 
+ 
+ 
+ Algorithm 2 (H_{j}^{(i)},R_{j}^{(i)})=\texttt{Get-Rec}(i,j,P_{j}^{(i)}) (black box to honest agents i\in\{1,\ldots,n\} ) 
+ 
+ Input: Agent i\in\{1,\ldots,n\} , phase j\in\mathbb{N} , blocklist P_{j}^{(i)} 
+ 
+ 
+ 1 
+ Choose H_{j}^{(i)} from \{1,\ldots,n+m\}\setminus(P_{j}^{(i)}\cup\{i\}) uniformly at random (i.e., from non-blocked agents), set i^{\prime}=H_{j}^{(i)} 
+
+ 
+ 
+ 2 
+ if i^{\prime}\leq n then 
+ 
+      
+ 3 
+ R_{j}^{(i)}=B_{j}^{(i^{\prime})} (honest recommended most played) 
+ 
+ 
+ 4 
+ else 
+ 
+      
+ 5 
+ Sample R_{j}^{(i)} from \nu_{j,i}^{(i^{\prime})} (any \mathcal{F} -measurable map from \Omega to the set of probability distributions over \{1,\ldots,K\} ) 
+
+ 
+ 
+ 6 
+ end if
+ 
+ Return: (H_{j}^{(i)},R_{j}^{(i)}) 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 4. Existing algorithm and lower bound 
+
+ 
+ The existing algorithm from ( Chawla et al., 2020b ) is the special case of Algorithm 1 where no blocking occurs, i.e., where P_{j}^{(i)}=\emptyset\ \forall\ j\in\mathbb{N},i\in\{1,\ldots,n\} . 3 3 
+ 3 
+ 
+ 
+ 
+ More precisely, we mean the synchronous algorithm in ( Chawla et al., 2020b ) , which includes an asynchronous variant. For simplicity, we restrict attention to the former. Thus, under our complete graph assumption, honest agent i solicits a recommendation from an agent sampled uniformly from \{1,\ldots,n+m\}\setminus\{i\} at each epoch. 
+ 
+ 
+ The following theorem lower bounds regret for this algorithm in the case of a single malicious agent ( m=1 ). Note the lone malicious agent has index n+1 in this case. Also note we should not expect a nontrivial lower bound for any strategy \{\nu_{j,i}^{(n+1)}\}_{j\in\mathbb{N},i\in\{1,\ldots,n\}} , because (as discussed in Section 3 ) the malicious agent may behave as an honest agent, reducing the system to the setting of ( Chawla et al., 2020b ) , for which regret is upper bounded by O(S\log(T)/\Delta_{2}) (see ( Chawla et al., 2020b , Theorem 1) ). Hence, in Theorem 1 , we consider an explicit (and extremely simple) strategy, where the malicious agent recommends uniformly random arms. Along these lines, note the theorem immediately extends to m\in\{2,3,\ldots\} , since we can assume m-1 malicious agents behave as honest ones, reducing the system to the setting of the theorem (with n replaced by n+m-1 ). 
+ 
+ 
+ Theorem 1. 
+ 
+ Assume m=1 and let \nu_{j,i}^{(n+1)} be the uniform distribution over \{1,\ldots,K\} , for each i\in\{1,\ldots,n\},j\in\mathbb{N} . Suppose each i\in\{1,\ldots,n\} runs Algorithm 1 with inputs \alpha,\beta>1 and performs no update in Line 1 (i.e., i runs the algorithm from ( Chawla et al., 2020b ) ). Also assume 1\in\cup_{i=1}^{n}\hat{S}^{(i)} . Then for any \varepsilon\in(0,1) independent of T and any i\in\{1,\ldots,n\} , 
+ 
+
+ 
+ (2) 
+ 
+ \lim_{T\rightarrow\infty}\mathbb{P}\left(\frac{R_{T}^{(i)}}{\log T}\geq(1-\varepsilon)\alpha\left(1-\frac{1}{\sqrt{\alpha}}\right)^{2}\sum_{k=2}^{K}\frac{1}{\Delta_{k}}\right)=1, 
+ 
+ 
+ and consequently, 
+ 
+
+ 
+ (3) 
+ 
+ \liminf_{T\rightarrow\infty}\frac{\mathbb{E}R_{T}^{(i)}}{\log T}\geq\alpha\left(1-\frac{1}{\sqrt{\alpha}}\right)^{2}\sum_{k=2}^{K}\frac{1}{\Delta_{k}}. 
+ 
+ 
+ 
+ 
+ 
+ Remark 2. 
+ 
+ As an example, if \Delta_{2}=\cdots=\Delta_{K}=\Delta for some \Delta\in(0,1) , honest agents who run the algorithm from ( Chawla et al., 2020b ) incur \Omega(K\log(T)/\Delta) regret (with high probability and in expectation), equivalent to the single-agent \text{UCB}(\alpha) baseline from ( Auer
+et al., 2002 ) . Thus, the algorithm from ( Chawla et al., 2020b ) fails when a single malicious agent is present , in the sense that collaboration is no longer strictly beneficial. Notably, this occurs independently of the number of honest agents n . 
+ 
+ 
+ 
+ Remark 3. 
+ 
+ We assume 1\in\cup_{i=1}^{n}\hat{S}^{(i)} in Theorem 1 to remove the trivial case where this assumption fails and agents incur \Omega(T) regret. Note that, although we treat \{\hat{S}^{(i)}\}_{i=1}^{n} as deterministic, an alternative approach is to define them as S -sized uniformly random subsets; choosing S=\lceil(K/n)\log(1/\varepsilon)\rceil ensures this assumption holds with probability 1-\varepsilon (see ( Chawla et al., 2020b , Appendix L) ). 
+ 
+ 
+ 
+ Proof sketch. 
+ 
+ The proof of Theorem 1 is deferred to ( Vial
+et al., 2020 , Appendix C) . At a high level, we separately consider three cases: 
+ 
+ (1) 
+ 
+ The best arm is not played often. 
+ 
+ (2) 
+ 
+ For some suboptimal arm k\neq 1 and all late phases j , k is not active for i during phase j . 
+ 
+ (3) 
+ 
+ The above cases fail, i.e., the best arm is played often and each suboptimal arm is active for i at some late phase j . 
+ 
+ 
+ Our precise definition of the first case (see ( 4 ) below) implies that suboptimal arms are pulled polynomially many times, from which the theorem follows immediately. The second case occurs with vanishing probability owing to the uniformly random communication and malicious recommendations. For the third case, by definition, we can find a late time t where arm k is active but arm 1 is pulled; by the \text{UCB}(\alpha) policy (Line 1 of Algorithm 1 ), this yields a lower bound on T_{k}^{(i)}(t-1) , which we use to prove the result in a manner similar to the single-agent bandit setting ( Auer
+et al., 2002 ) . 
+ 
+ 
+ More precisely, the first case is when the following occurs: 
+ 
+
+ 
+ (4) 
+ 
+ \cup_{j\geq\Theta(T^{1/\beta})}\{T_{1}^{(i)}(A_{j-1})=o(A_{j-1})\}\cup\cap_{t=A_{j-1}+1}^{A_{j}}\{I_{t}^{(i)}\neq k\}. 
+ 
+ 
+ In words, T_{1}^{(i)}(A_{j-1})=o(A_{j-1}) means the best arm has not been pulled a constant fraction of times before phase j , while I_{t}^{(i)}\neq k\ \forall\ t\in\{A_{j-1}+1,\ldots,A_{j}\} means this arm is never pulled within phase j . If the former occurs, then suboptimal arms are pulled A_{j-1}-o(A_{j-1})=\Theta(A_{j-1}) times before phase j ; since A_{j-1}=\Theta(j^{\beta})=\Theta(T) (by definition and choice of j , respectively), this implies linear regret. Similarly, if the latter occurs, suboptimal arms are pulled A_{j}-A_{j-1}=\Theta(j^{\beta-1})=\Theta(T^{(\beta-1)/\beta}) times during phase j , which gives polynomial regret. In both situations, the logarithmic lower bound on regret is immediate. 
+ 
+ 
+ The second case occurs when the following holds: 
+ 
+
+ 
+ (5) 
+ 
+ \cup_{k\neq 1}\cap_{j\geq\Theta(T^{1/\beta})}\{k\notin S_{j}^{(i)}\} 
+ 
+ 
+ In this case, the key observation is that R_{j}^{(i)}=k (i.e., i is recommended arm k at phase j ) with probability at least \frac{1}{nK} . This holds because when no blocking occurs, i contacts the malicious agent n+1 with probability \frac{1}{n} at each phase j (see Algorithm 2 ), who in turn recommends k with probability \frac{1}{K} (owing to the malicious strategy). Moreover, since the randomness in Algorithm 2 and the malicious recommendations is independent across phases j , \mathbb{P}(\cap_{j\geq\Theta(T^{1/\beta})}\{R_{j}^{(i)}\neq k\})\rightarrow 0 as T\rightarrow\infty . Finally, since R_{j}^{(i)}\in S_{j+1}^{(i)} in Algorithm 1 , the probability of ( 5 ) vanishes as well. 
+ 
+ 
+ The third case is when the events ( 4 ) and ( 5 ) both fail. By definition of these events, for any k\neq 1 , there exists a phase j=\Theta(T^{1/\beta}) and a time t=\Theta(T) during this phase such that k\in S_{j}^{(i)} , T_{1}^{(i)}(t-1)=\Theta(T) , and I_{t}^{(i)}=1 . Hence, because I_{t}^{(i)} is chosen according to the \text{UCB}(\alpha) policy (Line 1 of Algorithm 1 ), 
+ 
+
+ 
+ (6) 
+ 
+ \hat{\mu}_{k}^{(i)}(t-1)+\Theta\left(\sqrt{\frac{\log T}{T_{k}^{(i)}(t-1)}}\right)\leq\hat{\mu}_{1}^{(i)}(t-1)+\Theta\left(\sqrt{\frac{\log T}{T}}\right). 
+ 
+ 
+ Since \frac{\log T}{T}\rightarrow 0 and \hat{\mu}_{1}^{(i)}(t-1)-\hat{\mu}_{k}^{(i)}(t-1)\approx\mu_{1}-\mu_{k}=\Delta_{k} with high probability due to concentration, the previous inequality implies T_{k}^{(i)}(t-1)=\Omega(\log(T)/\Delta_{k}^{2}) . This means \Omega(\log(T)/\Delta_{k}) regret from arm k . Summing over k\neq 1 completes the proof.
+∎ 
+ 
+ 
+ 
+ 
+ 5. Proposed algorithm and upper bound 
+
+ 
+ We next define our approach, which in words is quite simple: if agent i^{\prime} recommends arm k at epoch j-1 , and k is not the most played arm in phase j , block i^{\prime} until epoch j^{\eta} , where \eta>1 is a tuning parameter. Hence, blocking depends only on the current phase j and not the number of bad arms that i^{\prime} has recommended in the past. More precisely, we propose running Algorithm 1 with the Update-Blocklists subroutine defined in Algorithm 3 . 
+ 
+ 
+ Algorithm 3 \{P_{j^{\prime}}^{(i)}\}_{j^{\prime}=j}^{\infty}=\texttt{Update-Blocklists} (executed by each honest agent i\in\{1,\ldots,n\} ) 
+ 
+ 
+ 1 
+ if j>1,B_{j}^{(i)}\neq R_{j-1}^{(i)} (previous recommendation not most played) then 
+ 
+      
+ 2 
+ for j^{\prime}\in\{j,\ldots,\lceil j^{\eta}\rceil\} do 
+ 
+           
+ 3 
+ P_{j^{\prime}}^{(i)}\leftarrow P_{j^{\prime}}^{(i)}\cup\{H_{j-1}^{(i)}\} (block the recommender) 
+
+ 
+      
+ 4 
+ end for
+ 
+ 
+ 5 
+ end if
+ 
+ Return: \{P_{j^{\prime}}^{(i)}\}_{j^{\prime}=j}^{\infty} 
+ 
+ 
+ 
+ 
+ 
+ 
+ Remark 4. 
+ 
+ The key feature of Algorithm 3 is that the blocking period \{j,\ldots,\lceil j^{\eta}\rceil\} grows with j . As mentioned in the introduction, this ensures two things. First, malicious agents who repeatedly recommend bad arms in late phases are blocked long enough to prevent the situation of the Theorem 1 proof sketch (which causes \Omega(K\log(T)/\Delta) regret). Second, honest agents i^{\prime} who are mistakenly blocked at early phases leave the blocklist soon enough to help spread the best arm to other honest agents. Note such mistakes can happen for three reasons: (1) i^{\prime} has much worse active arms than i , so any recommendation will perform poorly for i ; (2) i^{\prime} has good active arms but accidentally recommends a bad arm (which will occur before time \Theta(\Delta^{-2}) ( Audibert and
+Bubeck, 2010 ) ); (3) i^{\prime} recommends a good arm that performs poorly for i (which also occurs before \Theta(\Delta^{-2}) ). See Theorem 2 proof sketch and Remark 12 for a more quantitative discussion of these ideas. 
+ 
+ 
+ 
+ Remark 5. 
+ 
+ At a high level, malicious agents introduce a dilemma analogous to the standard MAB explore-exploit tradeoff: honest agents should block those who provide seemingly-bad recommendations – analogous to pulling seemingly-bad arms less frequently, i.e., exploiting – but should block mildly enough that honest agent mistakes are not punished too severely – analogous to continued exploration of seemingly-bad arms. Thus, Remark 4 and our analysis show that Algorithm 3 provides the correct scaling ( j^{\eta} -length blocking) for this additional explore-exploit tradeoff. 
+ 
+ 
+ 
+ Remark 6. 
+ 
+ We defined blocklists as infinite sequences to simplify the exposition; in practice, they can be maintained with (m+n)\log T memory: i can initialize d^{(i)}(i^{\prime})=0 and overwrite d^{(i)}(i^{\prime}) with \lceil j^{\eta}\rceil if i^{\prime} is blocked at phase j (for each i^{\prime} ), so that P_{j}^{(i)}=\{i^{\prime}:d^{(i)}(i^{\prime})\geq j\} . Note i requires \log T memory to store, e.g., rewards, so this does not increase i ’s storage cost in terms of T . 
+ 
+ 
+ 
+ Having defined our algorithm, we state a regret guarantee. We again assume 1\in\cup_{i=1}^{n}\hat{S}^{(i)} (see Remark 3 ) but require no assumptions on the number of malicious agents or their strategies. 
+ 
+ 
+ Theorem 2. 
+ 
+ Suppose each i\in\{1,\ldots,n\} runs Algorithm 1 with inputs \beta>1,\alpha>\frac{3+(1+\beta\eta)/\beta}{2} and uses Algorithm 3 as the Update- Blocklists subroutine with input \eta>1 . Also assume 1\in\cup_{i=1}^{n}\hat{S}^{(i)} . Then for any i\in\{1,\ldots,n\} and any T\in\mathbb{N} , 
+ 
+
+ 
+ (7) 
+ 
+ \mathbb{E}R_{T}^{(i)}\leq 4\alpha\min\left\{\frac{2\eta-1}{\eta-1}\sum_{k=2}^{m+3}\frac{1}{\Delta_{k}}+\sum_{k=m+4}^{S+m+4}\frac{1}{\Delta_{k}},\sum_{k=2}^{K}\frac{1}{\Delta_{k}}\right\}\log T+C^{\star}, 
+ 
+ 
+ where (by convention) \Delta_{k}=1\ \forall\ k>K , and where C^{\star} is a constant independent of T defined in ( 47 ) in Appendix A and satisfying 
+ 
+
+ 
+ (8) 
+ 
+ \displaystyle C^{\star} 
+ \displaystyle=O\Big((S/\Delta_{2}^{2})^{2\beta\eta/(\beta-1)}+SnK^{2}+((m+n)\log n)^{\beta} 
+ 
+ 
+ (9) 
+ 
+ 
+ \displaystyle\quad\quad\quad+(K/\Delta_{2})+m\log(K/\Delta_{2})/\Delta_{2}\Big). 
+ 
+ 
+ 
+ 
+ 
+ Remark 7. 
+ 
+ Letting S=\lceil(K/n)\log(1/\varepsilon)\rceil (see Remark 3 ) and \Delta_{2}=\cdots=\Delta_{K}=\Delta , Theorem 2 shows regret scales as O(\min\{m+K/n,K\}\log(T)/\Delta) for our algorithm. Note this improves over the O(K\log(T)/\Delta) regret of the single-agent baseline whenever m if the number of malicious agents is small compared to the number of arms, honest agents benefit from collaboration . In contrast, even m=1 malicious agent nullifies this benefit for the existing algorithm (see Remark 2 ). This choice of S does require knowledge of n , but knowledge of some lower bound n^{\prime}\leq n such that m+K/n^{\prime}=o(K) suffices. Equivalently, we can assume knowledge of n+m (as in ( Chawla et al., 2020b ) ) and a lower bound on n/(n+m) (e.g., honest agents know at least half of all agents are honest). Finally, we suspect the regret’s linear dependence on m is unavoidable, because malicious agents can behave like honest ones until late in the algorithm. Thus, o(m) dependence requires blocking malicious agents while they are indistinguishable from honest ones, which increases blocking among honest agents and may prevent the best arm from spreading. 
+ 
+ 
+ 
+ Remark 8. 
+ 
+ In the setting of Remark 7 , regret is O((K/n)\log(T)/\Delta) when m=0 , which matches the m=0 regret from ( Chawla et al., 2020b ) . We do have an additional multiplicative constant (2\eta-1)/(\eta-1) , but this can be removed by separately analyzing the cases m=0 and m>0 (see Remark 14 ). Our second-order term C^{\star} is worse due to accidental blocking of malicious agents early in the algorithm. However, this seems inevitable for an algorithm that simultaneously works in the cases m=0 and m>0 , without prior knowledge of the case. 
+ 
+ 
+ 
+ Remark 9. 
+ 
+ Our algorithm can improve over the single-agent baseline even when m\gg n . For example, in the setting of Remark 7 , its regret is O(K^{1-\lambda}\log(T)/\Delta) when n\propto K^{\lambda} and m\propto K^{1-\lambda} for some \lambda\in(0,1) . Note m is polynomial in n in this case, and the exponent can be made arbitrarily large by choosing \lambda small. While stylized, this regime is interesting because honest agents are initially overwhelmed with malicious agent recommendations, which can be arbitrarily bad. Nevertheless, Theorem 2 implies the best arm will eventually spread among honest agents, and honest agents will eventually block malicious ones. This is somewhat counterintuitive, as one may have expected us to need a bound on m in terms of n to bound regret. 
+ 
+ 
+ 
+ Remark 10. 
+ 
+ Our algorithm has two key parameters: \eta , which controls the blocking duration, and \beta , which controls the frequency of communication. In Theorem 2 , we see the \log T term decreases with \eta but is independent of \beta . Intuitively, this means long-term regret is smaller when blocking is more aggressive, but is insensitive to the frequency of communication. The second-order term grows with \eta , because aggressive blocking delays the best arm from spreading among honest agents. In contrast, this term’s dependence on \beta is more complicated. On the one hand, \Delta_{2}^{-4\beta\eta/(\beta-1)} is the time before honest agents can reliably identify the best arm in a phase, which decreases as the phase length (i.e., as \beta ) grows. On the other hand, the term ((m+n)\log n)^{\beta} is the additional time for the best arm to spread, which increases in \beta . See early regime in proof sketch for more details. 
+ 
+ 
+ 
+ Remark 11. 
+ 
+ By choosing the blocking parameter \eta to be small and tightening the analysis, the \Delta^{-4\beta\eta/(\beta-1)} dependence on the arm gap in Theorem 2 can be improved and made close to \Delta^{-2\beta/(\beta-1)} (see ( Vial
+et al., 2020 , Remark 13) ), which matches the best known bound when m=0 ( Chawla et al., 2020b , Corollary 2) . We note that improving this dependence to \Delta^{-1} , which would imply O(\sqrt{T}) regret for worst case \Delta , remains an open problem even without malicious agents. 
+ 
+ 
+ 
+ Proof sketch. 
+ 
+ We prove Theorem 2 in Appendix A but here describe the key ideas assuming \Delta_{2}=\cdots=\Delta_{K}=\Delta (to simplify the notation) and S+m 
+ 
+
+ 
+ (10) 
+ 
+ 1\in S_{j}^{(i)},\ B_{j}^{(i)}=1\ \forall\ i\in\{1,\ldots,n\}\ \forall\ j\geq\tau, 
+ 
+ 
+ i.e., the best arm is active and most played for all honest i and all phases j\geq\tau (see ( 20 ) in Appendix A for the formal definition). We then bound regret incurred in three regimes defined in terms of \tau . 
+ 
+ 
+ Early regime: This regime contains all phases before \tau , i.e., the first A_{\tau} arm pulls. Since A_{\tau}\triangleq\tau^{\beta} , we can trivially bound regret in this regime by \mathbb{E}\tau^{\beta} . Our goal is to show \mathbb{E}\tau^{\beta} 
+ 
+
+ 
+ (11) 
+ 
+ 1\in S_{j}^{(i)}\Rightarrow B_{j}^{(i)}=1\ \forall\ i\in\{1,\ldots,n\}\ \forall\ j\geq\tau_{stab}, 
+ 
+ 
+ i.e., the best arm is most played if it is active (see ( 18 ) in Appendix A ). Next, let i^{*} be an honest agent with the best arm in its sticky set, i.e., 1\in\hat{S}^{(i^{*})} (such an agent exists by assumption). The key observation is that if i\neq i^{*} contacts i^{*} at phase j\geq\tau_{stab} , i.e., if H_{j}^{(i)}=i^{*} , then i^{*} will (by definition of \tau_{stab} ) recommend arm 1 , which i will add to its active set S_{j}^{(i)} (if not already present). Combined with ( 10 ) and ( 11 ), this implies 
+ 
+
+ 
+ (12) 
+ 
+ \tau\leq\max_{i\in\{1,\ldots,n\}\setminus\{i^{*}\}}\inf\{j\geq\tau_{stab}:H_{j}^{(i)}=i^{*}\}. 
+ 
+ 
+ Now because of the uniform sampling in Algorithm 2 , H_{j}^{(i)}=i^{*} occurs every O(m+n) phases on average, unless i^{*} has been blocked. However, even if i blocks i^{*} just before \tau_{stab} , i will un-block i^{*} by phase \tau_{stab}^{\eta} , and H_{j}^{(i)}=i^{*} will occur within O(m+n) additional phases. This allows us to show that with high probability, \inf\{j\geq\tau_{stab}:H_{j}^{(i)}=i^{*}\}=O(\tau_{stab}^{\eta}) , where here O(\cdot) hides n and m . Combined with ( 12 ), and bounding the maximum by a sum, we obtain \mathbb{E}\tau^{\beta}\leq O(\mathbb{E}\tau_{stab}^{\eta\beta}) . Thus, it only remains to show \mathbb{E}\tau_{stab}^{\eta\beta} ( Bubeck
+et al., 2011 ) , and the fact that the phase length A_{j}-A_{j-1}=\Theta(j^{\beta-1}) grows with j . We note the definition of \tau_{stab} is taken from ( Chawla et al., 2020b ) , but our analysis differs as we require a stronger result ( \mathbb{E}\tau_{stab}^{\eta\beta} ( Chawla et al., 2020b ) ), owing to the fact that honest agents can mistakenly block one another in our algorithm. 
+ 
+ 
+ Late regime: The late regime (hereafter LR) contains phases j\in\{\max\{T^{\phi},\tau\},\ldots,T^{1/\beta}\} , where \phi\in(0,1/\beta) will be chosen later (independent of T ) and T^{1/\beta} is the phase ending at time A_{T^{1/\beta}}\triangleq T . The key observation is that if malicious agent i^{\prime} recommends a suboptimal arm k\neq 1 to honest agent i at such a phase j , k will not be most played by i (since j\geq\tau and by definition \tau ), so i will block i^{\prime} until phase j^{\eta} . After phase j^{\eta} , i^{\prime} can again recommend a suboptimal arm, but i will again block i^{\prime} , this time until phase j^{\eta^{2}} . Iterating this argument, we see i^{\prime} can only recommend suboptimal arms at phases that scale as \{T^{\phi\eta^{l}}\}_{l=0}^{l_{1}} , where l_{1}=-\log_{\eta}(\beta\phi) indexes the last such phase in the LR (since T^{\phi\eta^{l_{1}}}=T^{1/\beta} ). Thus, irrespective of the horizon T , each malicious agent can recommend only l_{1} suboptimal arms in the LR. Combined with the fact that the LR begins at phase \tau (after which honest agents only recommend the best arm), this means i only explores S+l_{1}m suboptimal arms during the LR: S sticky arms and l_{1} recommendations from each of m malicious agents. Thus, the LR is roughly equivalent to an (S+l_{1}m) -armed bandit. Using classical bounds from ( Auer
+et al., 2002 ) , this implies that i incurs O((S+l_{1}m)\log(T)/\Delta) LR regret. 
+ 
+ 
+ Intermediate regime: The remaining phases \tau,\ldots,T^{\phi} are the intermediate regime (IR). Since this regime also starts after \tau , the argument from the LR shows that any malicious agent i^{\prime} can only recommend suboptimal arms at phases that scale as \{\tau^{\eta^{l}}\}_{l=0}^{l_{2}} , where l_{2}=\log_{\eta}\log_{\tau}T^{1/\phi} is the last phase before the LR. However, since \phi was assumed to be independent of T in the LR, l_{2}\rightarrow\infty as T\rightarrow\infty , so the key result from the LR (that malicious i^{\prime} can only recommend finite suboptimal arms) fails. Hence, we concede that malicious agents may force i to explore all suboptimal arms during in the IR. However, since the best arm is always active for i and t\leq A_{T^{\phi}}\triangleq T^{\phi\beta} in the IR, this is no worse than playing all K arms for horizon T^{\phi\beta} , which means O(K\log(T^{\phi\beta})/\Delta) IR regret. 
+ 
+ 
+ Finishing the proof: In summary, we have argued 
+ 
+
+ 
+ (13) 
+ 
+ \mathbb{E}R_{T}^{(i)}=O(1)+O(K\log(T^{\phi\beta})/\Delta)+O((S+l_{1}m)\log(T)/\Delta), 
+ 
+ 
+ where the three terms account for the early, intermediate, and late regimes, respectively. Choosing \phi=1/(K\beta) and recalling l_{1}=-\log_{\eta}(\beta\phi)=O(\log K) , we obtain 
+ 
+
+ 
+ (14) 
+ 
+ \mathbb{E}R_{T}^{(i)}=O((S+m\log K)\log(T)/\Delta). 
+ 
+ 
+ (Note this is worse than the bound reported in the theorem; in the actual proof, we tighten the analysis to avoid the \log K factor.)
+∎ 
+ 
+ 
+ 
+ Remark 12. 
+ 
+ In short, our algorithm relies on three phenomena. First, for phases independent of T , polynomial-length blocking is mild enough that the best arm spreads (see early regime in proof sketch). Second, repeatedly blocking malicious agents means each recommends finitely many suboptimal arms at phases polynomial in T (see late regime). Third, while blocking cannot eliminate malicious agents in between these regimes, the effective horizon T^{1/K} is too small to appreciably increase regret (see intermediate regime). 
+ 
+ 
+ 
+ Remark 13. 
+ 
+ In the absence of malicious agents, ( Chawla et al., 2020b , Proposition 1) shows 1\in S_{\tau^{\prime}}^{(i)} and S_{j}^{(i)}=S_{\tau^{\prime}}^{(i)}\ \forall\ j\geq\tau^{\prime} , for some almost-surely finite phase \tau^{\prime} ; in words, active sets remain fixed after \tau^{\prime} . This allows the authors to treat regret after phase \tau^{\prime} as in the single-agent bandit setting (with the actual set of arms \{1,\ldots,K\} replaced by the fixed active set S_{\tau^{\prime}}^{(i)} ). With the introduction of malicious agents, active sets may change infinitely often as T\rightarrow\infty (see intermediate/late regimes of proof sketch), which necessitates a more refined analysis. 
+ 
+ 
+ 
+ 
+ 6. Experiments 
+
+ 
+ In this section, we illustrate our analysis with numerical results on synthetic and real datasets. 
+ 
+ 
+ 6.1. Synthetic data 
+
+ 
+ For the arm means, we choose \mu_{1}=0.95,\mu_{2}=0.85 (so that \Delta_{2}=0.1 ) and sample \mu_{3},\ldots,\mu_{K} from [0,0.85] uniformly. We fix n=25 , \beta=2 , and \alpha=4 . Note the existing algorithm has good empirical performance with similar parameters when m=0 (see ( Chawla et al., 2020b , Section 7) ). We choose S=\lceil K/n\rceil (see Remark 3 ) and resample uniformly random sticky sets until 1\in\cup_{i=1}^{n}\hat{S}^{(i)} . We consider two malicious agent strategies: a uniform strategy and an omniscient strategy , where \nu_{j,i}^{(i^{\prime})} is uniform over \{1,\ldots,K\} and \argmin_{k^{\prime}\in\{2,\ldots,K\}\setminus S_{j}^{(i)}}T_{k^{\prime}}^{(i)}(A_{j}) , respectively. 4 4 
+ 4 
+ 
+ 
+ 
+ Omniscient refers to the fact that malicious agents exploit private information. Note that the omniscient strategy recommends whichever inactive suboptimal arm has been played least thus far, which forces honest agents to continue exploring all suboptimal arms. 
+ 
+ 
+ In Figure 1 , we set m=10,K=100,\eta=2 and plot mean and standard deviation of regret over 50 trials. We compare the proposed algorithm to the existing one from ( Chawla et al., 2020b ) , a baseline with no communication between agents, and an oracle baseline where honest agents know and block malicious agents a priori . Our algorithm performs closer to the oracle than the no communication baseline; the opposite is true for ( Chawla et al., 2020b ) . Moreover, our algorithm incurs less than half the regret of the existing algorithm. This improvement occurs across various choices of m , K , and \eta ; see ( Vial
+et al., 2020 , Appendix D) . Results are roughly similar for the uniform and omniscient strategies. The most notable difference is the “S-curve" for the existing algorithm in the latter case. We believe this occurs because the omniscient strategy more aggressively forces honest agents to play under-explored non-active arms. Being under-explored, these arms are likely to be played more than the best one in the subsequent phase, which causes honest agents to discard the best arm at T\approx 6\times 10^{4} and T\approx 4\times 10^{4} in Figures 1 and 2 , respectively. This leads to the “bump" in regret near those values of T . 
+ 
+ 
+ Figure 1. Regret for synthetic data, m=10,K=100,\eta=2 
+ 
+ 
+ 
+ 6.2. Real data 
+
+ 
+ For the same choices of n , \beta , \alpha , and malicious agent strategy, we test the four algorithms on the MovieLens dataset ( Harper and
+Konstan, 2015 ) . We view movies as arms and derive arm means in a manner similar to ( Chawla et al., 2020b ; Sankararaman et al., 2019 ) . First, we extract a matrix containing movie ratings by users with the same age, gender, and occupation, while also ensuring each user has rated \geq 30 movies and each movie has been rated \geq 30 times by the set of users. Next, we use matrix completion ( Hastie
+et al., 2015 ) to estimate the missing entries of this matrix. From this estimated matrix, we map ratings to Bernoulli rewards by defining arm means as the fraction of ratings \geq 4 on a scale of 1 to 5 (i.e., we assume a user enjoyed a movie and gained a unit reward if he/she rated it 4 or 5 stars). Figure 2 shows results similar to the synthetic case for m=15,K=100,\eta=2 ; ( Vial
+et al., 2020 , Appendix D) again contains results for other m , K , and \eta values. 
+ 
+ 
+ Figure 2. Regret for real data, m=15,K=100,\eta=2 
+ 
+ 
+ 
+ 
+ 7. Conclusion 
+
+ 
+ We studied a setting in which n honest agents collaborate to minimize regret from a K -armed bandit and m malicious agents disrupt this collaboration. We showed that even if m=1 , existing algorithms fail to leverage the benefit of collaboration in this setting. We thus proposed an algorithm based on blocking. For the proposed algorithm, we showed regret is smaller than the single-agent baseline whenever m is small compared to K , ensuring robustness against any malicious behavior. 
+ 
+ 
+ 
+ Acknowledgments 
+
+ 
+ We thank Ronshee Chawla and Abishek Sankararaman for assistance with experiments. This work was partially supported by ONR Grant N00014-19-1-2566, NSF Grant SATC 1704778, NSF Grant CCF 1934986, ARO Grant W911NF-17-1-0359, and ARO Grant W911NF-19-1-0379. 
+ 
+ 
+ 
+ References 
+
+ 
+ 
+ Anandkumar et al . (2011) 
+ 
+Animashree Anandkumar,
+Nithin Michael, Ao Kevin Tang, and
+Ananthram Swami. 2011.
+
+ 
+ Distributed algorithms for learning and cognitive
+medium access with logarithmic regret.
+
+ 
+ IEEE Journal on Selected Areas in
+Communications 29, 4
+(2011), 731–745.
+
+ 
+ 
+ 
+ 
+ Audibert and
+Bubeck (2010) 
+ 
+Jean-Yves Audibert and
+Sébastien Bubeck. 2010.
+
+ 
+ Best Arm Identification in Multi-Armed Bandits. In
+ COLT-23th Conference on Learning Theory-2010 .
+13–p.
+
+ 
+ 
+ 
+ 
+ Auer
+et al . (2002) 
+ 
+Peter Auer, Nicolo
+Cesa-Bianchi, and Paul Fischer.
+2002.
+
+ 
+ Finite-time analysis of the multiarmed bandit
+problem.
+
+ 
+ Machine learning 47,
+2-3 (2002), 235–256.
+
+ 
+ 
+ 
+ 
+ Auer
+et al . (1995) 
+ 
+Peter Auer, Nicolo
+Cesa-Bianchi, Yoav Freund, and Robert E
+Schapire. 1995.
+
+ 
+ Gambling in a rigged casino: The adversarial
+multi-armed bandit problem. In Proceedings of IEEE
+36th Annual Foundations of Computer Science . IEEE,
+322–331.
+
+ 
+ 
+ 
+ 
+ Avner and Mannor (2014) 
+ 
+Orly Avner and Shie
+Mannor. 2014.
+
+ 
+ Concurrent bandits and cognitive radio networks.
+In Joint European Conference on Machine Learning
+and Knowledge Discovery in Databases . Springer, 66–81.
+
+ 
+ 
+ 
+ 
+ Awerbuch and
+Kleinberg (2008) 
+ 
+Baruch Awerbuch and
+Robert Kleinberg. 2008.
+
+ 
+ Competitive collaborative learning.
+
+ 
+ J. Comput. System Sci. 
+74, 8 (2008),
+1271–1288.
+
+ 
+ 
+ 
+ 
+ Bistritz and
+Leshem (2018) 
+ 
+Ilai Bistritz and Amir
+Leshem. 2018.
+
+ 
+ Distributed multi-player bandits-a game of thrones
+approach. In Advances in Neural Information
+Processing Systems . 7222–7232.
+
+ 
+ 
+ 
+ 
+ Bubeck
+et al . (2011) 
+ 
+Sébastien Bubeck,
+Rémi Munos, and Gilles Stoltz.
+2011.
+
+ 
+ Pure exploration in finitely-armed and
+continuous-armed bandits.
+
+ 
+ Theoretical Computer Science 
+412, 19 (2011),
+1832–1852.
+
+ 
+ 
+ 
+ 
+ Buccapatnam
+et al . (2015) 
+ 
+Swapna Buccapatnam, Jian
+Tan, and Li Zhang. 2015.
+
+ 
+ Information sharing in distributed stochastic
+bandits. In 2015 IEEE Conference on Computer
+Communications (INFOCOM) . IEEE, 2605–2613.
+
+ 
+ 
+ 
+ 
+ Cesa-Bianchi et al . (2016) 
+ 
+Nicolo Cesa-Bianchi,
+Claudio Gentile, Yishay Mansour, and
+Alberto Minora. 2016.
+
+ 
+ Delay and cooperation in nonstochastic bandits. In
+ Conference on Learning Theory ,
+Vol. 49. 605–622.
+
+ 
+ 
+ 
+ 
+ Chakraborty
+et al . (2017) 
+ 
+Mithun Chakraborty, Kai
+Yee Phoebe Chua, Sanmay Das, and
+Brendan Juba. 2017.
+
+ 
+ Coordinated Versus Decentralized Exploration In
+Multi-Agent Multi-Armed Bandits.. In IJCAI .
+164–170.
+
+ 
+ 
+ 
+ 
+ Chawla et al . (2020b) 
+ 
+Ronshee Chawla, Abishek
+Sankararaman, Ayalvadi Ganesh, and
+Sanjay Shakkottai. 2020b.
+
+ 
+ The Gossiping Insert-Eliminate Algorithm for
+Multi-Agent Bandits. In Proceedings of the Twenty
+Third International Conference on Artificial Intelligence and Statistics .
+3471–3481.
+
+ 
+ 
+ 
+ 
+ Chawla
+et al . (2020a) 
+ 
+Ronshee Chawla, Abishek
+Sankararaman, and Sanjay Shakkottai.
+2020a.
+
+ 
+ Multi-Agent Low-Dimensional Linear Bandits.
+
+ 
+ arXiv preprint arXiv:2007.01442 
+(2020).
+
+ 
+ 
+ 
+ 
+ Gupta
+et al . (2019) 
+ 
+Anupam Gupta, Tomer
+Koren, and Kunal Talwar.
+2019.
+
+ 
+ Better Algorithms for Stochastic Bandits with
+Adversarial Corruptions. In Conference on Learning
+Theory . 1562–1578.
+
+ 
+ 
+ 
+ 
+ Harper and
+Konstan (2015) 
+ 
+F Maxwell Harper and
+Joseph A Konstan. 2015.
+
+ 
+ The movielens datasets: History and context.
+
+ 
+ Acm transactions on interactive intelligent
+systems (tiis) 5, 4
+(2015), 1–19.
+
+ 
+ 
+ 
+ 
+ Hastie
+et al . (2015) 
+ 
+Trevor Hastie, Rahul
+Mazumder, Jason D Lee, and Reza
+Zadeh. 2015.
+
+ 
+ Matrix completion and low-rank SVD via fast
+alternating least squares.
+
+ 
+ The Journal of Machine Learning Research 
+16, 1 (2015),
+3367 – 3402.
+
+ 
+ 
+ 
+ 
+ Hillel et al . (2013) 
+ 
+Eshcar Hillel, Zohar S
+Karnin, Tomer Koren, Ronny Lempel, and
+Oren Somekh. 2013.
+
+ 
+ Distributed exploration in multi-armed bandits. In
+ Advances in Neural Information Processing
+Systems . 854–862.
+
+ 
+ 
+ 
+ 
+ Kalathil
+et al . (2014) 
+ 
+Dileep Kalathil, Naumaan
+Nayyar, and Rahul Jain.
+2014.
+
+ 
+ Decentralized learning for multiplayer multiarmed
+bandits.
+
+ 
+ IEEE Transactions on Information Theory 
+60, 4 (2014),
+2331–2345.
+
+ 
+ 
+ 
+ 
+ Kanade
+et al . (2012) 
+ 
+Varun Kanade, Zhenming
+Liu, and Bozidar Radunovic.
+2012.
+
+ 
+ Distributed non-stochastic experts. In
+ Advances in Neural Information Processing
+Systems . 260–268.
+
+ 
+ 
+ 
+ 
+ Kapoor
+et al . (2019) 
+ 
+Sayash Kapoor,
+Kumar Kshitij Patel, and Purushottam
+Kar. 2019.
+
+ 
+ Corruption-tolerant bandit learning.
+
+ 
+ Machine Learning 108,
+4 (2019), 687–715.
+
+ 
+ 
+ 
+ 
+ Kolla
+et al . (2018) 
+ 
+Ravi Kumar Kolla, Krishna
+Jagannathan, and Aditya Gopalan.
+2018.
+
+ 
+ Collaborative learning of stochastic bandits over a
+social network.
+
+ 
+ IEEE/ACM Transactions on Networking 
+26, 4 (2018),
+1782–1795.
+
+ 
+ 
+ 
+ 
+ Korda
+et al . (2016) 
+ 
+Nathan Korda, Balázs
+Szörényi, and Li Shuai.
+2016.
+
+ 
+ Distributed clustering of linear bandits in peer to
+peer networks. In Journal of machine learning
+research workshop and conference proceedings , Vol. 48.
+International Machine Learning Societ, 1301–1309.
+
+ 
+ 
+ 
+ 
+ Lalitha and
+Goldsmith (2020) 
+ 
+Anusha Lalitha and
+Andrea Goldsmith. 2020.
+
+ 
+ Bayesian Algorithms for Decentralized Stochastic
+Bandits.
+
+ 
+ arXiv preprint arXiv:2010.10569 
+(2020).
+
+ 
+ 
+ 
+ 
+ Landgren
+et al . (2016) 
+ 
+Peter Landgren, Vaibhav
+Srivastava, and Naomi Ehrich Leonard.
+2016.
+
+ 
+ Distributed cooperative decision-making in
+multiarmed bandits: Frequentist and Bayesian algorithms. In
+ 2016 IEEE 55th Conference on Decision and Control
+(CDC) . IEEE, 167–172.
+
+ 
+ 
+ 
+ 
+ Liu and Shroff (2019) 
+ 
+Fang Liu and Ness
+Shroff. 2019.
+
+ 
+ Data Poisoning Attacks on Stochastic Bandits. In
+ International Conference on Machine Learning .
+4042–4050.
+
+ 
+ 
+ 
+ 
+ Liu et al . (2012) 
+ 
+Haoyang Liu, Keqin Liu,
+and Qing Zhao. 2012.
+
+ 
+ Learning in a changing world: Restless multiarmed
+bandit with unknown dynamics.
+
+ 
+ IEEE Transactions on Information Theory 
+59, 3 (2012),
+1902–1916.
+
+ 
+ 
+ 
+ 
+ Liu
+et al . (2020) 
+ 
+Lydia T Liu, Horia Mania,
+and Michael Jordan. 2020.
+
+ 
+ Competing bandits in matching markets. In
+ International Conference on Artificial Intelligence
+and Statistics . PMLR, 1618–1628.
+
+ 
+ 
+ 
+ 
+ Lykouris
+et al . (2018) 
+ 
+Thodoris Lykouris, Vahab
+Mirrokni, and Renato Paes Leme.
+2018.
+
+ 
+ Stochastic bandits robust to adversarial
+corruptions. In Proceedings of the 50th Annual ACM
+SIGACT Symposium on Theory of Computing . 114–122.
+
+ 
+ 
+ 
+ 
+ Mansour
+et al . (2018) 
+ 
+Yishay Mansour, Aleksandrs
+Slivkins, and Steven Wu.
+2018.
+
+ 
+ Competing bandits: Learning under competition. In
+ 9th Innovations in Theoretical Computer Science,
+ITCS 2018 . Schloss Dagstuhl-Leibniz-Zentrum fur Informatik GmbH, Dagstuhl
+Publishing, 48.
+
+ 
+ 
+ 
+ 
+ Martínez-Rubio et al . (2019) 
+ 
+David Martínez-Rubio,
+Varun Kanade, and Patrick Rebeschini.
+2019.
+
+ 
+ Decentralized cooperative stochastic multi-armed
+bandits.
+
+ 
+ Advances in Neural Information Processing
+Systems (2019).
+
+ 
+ 
+ 
+ 
+ Rosenski
+et al . (2016) 
+ 
+Jonathan Rosenski, Ohad
+Shamir, and Liran Szlak.
+2016.
+
+ 
+ Multi-player bandits–a musical chairs approach.
+In International Conference on Machine Learning .
+155–163.
+
+ 
+ 
+ 
+ 
+ Sankararaman et al . (2019) 
+ 
+Abishek Sankararaman,
+Ayalvadi Ganesh, and Sanjay
+Shakkottai. 2019.
+
+ 
+ Social learning in multi agent multi armed
+bandits.
+
+ 
+ Proceedings of the ACM on Measurement and
+Analysis of Computing Systems 3, 3
+(2019), 1–35.
+
+ 
+ 
+ 
+ 
+ Seldin et al . (2014) 
+ 
+Yevgeny Seldin, Peter L
+Bartlett, Koby Crammer, and Yasin
+Abbasi-Yadkori. 2014.
+
+ 
+ Prediction with Limited Advice and Multiarmed
+Bandits with Paid Observations.. In ICML .
+280–287.
+
+ 
+ 
+ 
+ 
+ Shahrampour et al . (2017) 
+ 
+Shahin Shahrampour,
+Alexander Rakhlin, and Ali Jadbabaie.
+2017.
+
+ 
+ Multi-armed bandits in multi-agent networks. In
+ 2017 IEEE International Conference on Acoustics,
+Speech and Signal Processing (ICASSP) . IEEE, 2786–2790.
+
+ 
+ 
+ 
+ 
+ Stack Exchange ([n.d.]) 
+ 
+Stack Exchange [n.d.].
+
+ 
+ How long does a ban or suspension on an SE site
+last?
+
+ 
+ https://meta.stackexchange.com/questions/222939/how-long-does-a-ban-or-suspension-on-an-se-site-last .
+
+ 
+ 
+ 
+ Accessed 05-29-20.
+
+ 
+ 
+ Szörényi et al . (2013) 
+ 
+Balázs Szörényi,
+Róbert Busa-Fekete, István
+Hegedűs, Róbert Ormándi,
+Márk Jelasity, and Balázs
+Kégl. 2013.
+
+ 
+ Gossip-based distributed stochastic bandit
+algorithms. In Journal of Machine Learning
+Research Workshop and Conference Proceedings , Vol. 2.
+International Machine Learning Societ, 1056–1064.
+
+ 
+ 
+ 
+ 
+ Vial
+et al . (2020) 
+ 
+Daniel Vial, Sanjay
+Shakkottai, and R Srikant.
+2020.
+
+ 
+ Robust Multi-Agent Multi-Armed Bandits.
+
+ 
+ arXiv preprint arXiv:2007.03812 
+(2020).
+
+ 
+ 
+ 
+ 
+ Wikipedia ([n.d.]) 
+ 
+Wikipedia [n.d.].
+
+ 
+ Blocking policy.
+
+ 
+ https://en.wikipedia.org/wiki/Wikipedia:Blocking_policy .
+
+ 
+ 
+ 
+ Accessed 05-29-20.
+
+ 
+ 
+ 
+ 
+ 
+ Appendix A Proof of Theorem 2 
+
+ 
+ Our proof uses a construction from ( Chawla et al., 2020b , Appendix B.1) that we define here. First, let \mathcal{S}^{(i)}=\{W\subset\{1,\ldots,K\}:|W|=S+2,\hat{S}^{(i)}\cup\{1\}\subset W\} denote the (S+2) -sized sets of arms containing the sticky set \hat{S}^{(i)} and the best arm 1 . For i\in\{1,\ldots,n\} , j\in\mathbb{N} , W=\{w_{1},\ldots,w_{S+2}\}\in\mathcal{S}^{(i)} , and a=(a_{1},\ldots,a_{S+2})\in(\mathbb{N}\cup\{0\})^{S+2} , let 
+ 
+
+ 
+ (15) 
+ 
+ \displaystyle\xi_{j}^{(i)}(W,a)=\{S_{j}^{(i)}=W, 
+ \displaystyle[T_{w_{l}}^{(i)}(A_{j-1})]_{l=1}^{S+2}=a,B_{j}^{(i)}\neq 1\} 
+ 
+ 
+ be the event that honest agent i ’s active set is W at phase j , arm w_{l}\in W was played a_{l} times before phase j began (for each l ), and 1 is not the most played arm during phase j . Also define 
+ 
+
+ 
+ (16) 
+ 
+ \Xi_{j}^{(i)}=\cup_{W\in\mathcal{S}^{(i)}}\cup_{a\in(\mathbb{N}\cup\{0\})^{S+2}}\xi_{j}^{(i)}(W,a) 
+ 
+ 
+ to be the union (over active sets and histories of plays) of all such events. Let \chi_{j}^{(i)}=1(\Xi_{j}^{(i)}) , where 1(\cdot) is the indicator function. Thus, \chi_{j}^{(i)}=0 implies the best arm 1 is not active for i at phase j , or it is active and it is most played (under any history of plays). Using \chi_{j}^{(i)} , define the random variables 
+ 
+
+ 
+ (17) 
+ 
+ \displaystyle\textstyle\tau_{stab}^{(i)}=\inf\{j\in\mathbb{N}:\chi_{j^{\prime}}^{(i)}=0\ \forall\ j^{\prime}\geq j\}, 
+ 
+ 
+ (18) 
+ 
+ \displaystyle\textstyle\tau_{stab}=\max_{i\in\{1,\ldots,n\}}\tau_{stab}^{(i)}. 
+ 
+ 
+ Thus, at the \tau_{stab} -th phase, and at all phases thereafter, the best arm 1 will be the most played for any honest agent with this arm in its active set. Finally, let 
+ 
+
+ 
+ (19) 
+ 
+ \displaystyle\tau_{spr}^{(i)}=\inf\{j\geq\tau_{stab}:1\in S_{j}^{(i)}\}-\tau_{stab}, 
+ 
+ 
+ (20) 
+ 
+ \displaystyle\textstyle\tau_{spr}=\max_{i\in\{1,\ldots,n\}}\tau_{spr}^{(i)},\quad\tau=\tau_{stab}+\tau_{spr}. 
+ 
+ 
+ Thus, at the \tau -th phase, and at all phases thereafter, the active set contains the best arm 1 and this arm is most played, for all honest agents. Note the definition of \tau implies the following property: 
+ 
+
+ 
+ (21) 
+ 
+ 1\in S_{j}^{(i)},\ B_{j}^{(i)}=1\ \forall\ j\in\{\tau,\tau+1,\ldots\}\ \forall\ i\in\{1,\ldots,n\}. 
+ 
+ 
+ This holds inductively: 1\in S_{\tau_{spr}^{(i)}+\tau_{stab}}^{(i)} by definition of \tau_{spr}^{(i)} , so B_{\tau_{spr}^{(i)}+\tau_{stab}}^{(i)}=1 by definition of \tau_{stab} , so 1\in S_{\tau_{spr}^{(i)}+\tau_{stab}+1}^{(i)} by Algorithm 1 , etc. By definition of \tau , ( 21 ) follows. 
+ 
+ 
+ Next, we let \overline{S}^{(i)}=\{2,\ldots,K\}\cap\hat{S}^{(i)} and \underline{S}^{(i)}=\{2,\ldots,K\}\setminus\hat{S}^{(i)} denote the suboptimal sticky and non-sticky arms for agent i , respectively, and we let \gamma\in(0,1) be a constant to be chosen later. Then by upper bounding regret before A_{\tau} as linear in time, 
+ 
+
+ 
+ (22) 
+ 
+ \displaystyle\mathbb{E}R_{T}^{(i)}\leq\mathbb{E}A_{\tau} 
+ \displaystyle\textstyle+\sum_{k\in\overline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\tau}+1}^{T}1(I_{t}^{(i)}=k) 
+ 
+ 
+ (23) 
+ 
+ 
+ \displaystyle\textstyle+\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\tau}+1}^{A_{\lceil T^{\gamma/\beta}\rceil}\wedge T}1(I_{t}^{(i)}=k) 
+ 
+ 
+ (24) 
+ 
+ 
+ \displaystyle\textstyle+\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\lceil T^{\gamma/\beta}\rceil\vee\tau}+1}^{T}1(I_{t}^{(i)}=k). 
+ 
+ 
+ In words, the first term accounts for regret incurred at early times, i.e., before all agents are aware of the best arm and only recommend it moving forward. The remaining terms account for regret incurred from sticky arms at later times, from non-sticky arms at intermediate times, and from non-sticky arms at later times. The following lemmas bound these terms; see ( Vial
+et al., 2020 , Appendix B) for proofs. 
+ 
+ 
+ Lemma 1 (Early). 
+ 
+ For any \beta>1,\eta>1,\alpha>\frac{3+(1+\beta\eta)/\beta}{2} , 
+ 
+
+ 
+ (25) 
+ 
+ \displaystyle\mathbb{E}A_{\tau} 
+ \displaystyle\textstyle\leq 2^{1+\beta\eta}\left(4+\left(\frac{26\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{2/(\beta-1)}\right)^{\beta\eta} 
+ 
+ 
+ (26) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{10\beta}{\beta-1}\max\{6(m+n)\max\{\log n,2(\beta-1)\},3(6^{\eta}+2)\}^{\beta} 
+ 
+ 
+ (27) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{2^{\beta(2\alpha-3)+1}n\binom{K}{2}(S+1)}{(2\alpha-3)(\beta(2\alpha-3)-1)((\beta(2\alpha-3)-1)/\eta-\beta)}. 
+ 
+ 
+ 
+ 
+ 
+ Lemma 2 (Late, sticky). 
+ 
+ 
+
+ 
+ (28) 
+ 
+ 
+ \displaystyle\textstyle\sum_{k\in\overline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\tau}+1}^{T}1(I_{t}^{(i)}=k) 
+ 
+ 
+ (29) 
+ 
+ 
+ \displaystyle\textstyle\leq\sum_{k\in\overline{S}^{(i)}}\frac{4\alpha\log T}{\Delta_{k}}+2|\overline{S}^{(i)}|\sum_{t=1}^{\infty}t^{2(1-\alpha)}. 
+ 
+ 
+ 
+ 
+ 
+ Lemma 3 (Intermediate, non-sticky). 
+ 
+ For any \gamma\in(0,1) , 
+ 
+
+ 
+ (30) 
+ 
+ 
+ \displaystyle\textstyle\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\tau}+1}^{A_{\lceil T^{\gamma/\beta}\rceil}\wedge T}1(I_{t}^{(i)}=k) 
+ 
+ 
+ (31) 
+ 
+ 
+ \displaystyle\textstyle\leq\sum_{k\in\underline{S}^{(i)}}\frac{4\alpha\log(A_{\lceil T^{\gamma/\beta}\rceil}\wedge T)}{\Delta_{k}}+2|\underline{S}^{(i)}|\sum_{t=1}^{A_{\lceil T^{\gamma/\beta}\rceil}}t^{2(1-\alpha)} 
+ 
+ 
+ (32) 
+ 
+ 
+ \displaystyle\textstyle\leq\frac{4\alpha\gamma K\log T}{\Delta_{2}}+\frac{8\alpha\beta K}{\Delta_{2}}+2|\underline{S}^{(i)}|\sum_{t=1}^{A_{\lceil T^{\gamma/\beta}\rceil}}t^{2(1-\alpha)}. 
+ 
+ 
+ 
+ 
+ 
+ Lemma 4 (Late, non-sticky). 
+ 
+ For any \gamma\in(0,1) , 
+ 
+
+ 
+ (33) 
+ 
+ 
+ \displaystyle\textstyle\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\lceil T^{\gamma/\beta}\rceil\vee\tau}+1}^{T}1(I_{t}^{(i)}=k) 
+ 
+ 
+ (34) 
+ 
+ 
+ \displaystyle\textstyle\leq\frac{2\eta-1}{\eta-1}\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{4\alpha\log T}{\Delta_{k}} 
+ 
+ 
+ (35) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{8\alpha\beta\log_{\eta}(1/\gamma)(m+2)}{\Delta_{2}}+2|\underline{S}^{(i)}|\sum_{t=1+A_{\lceil T^{\gamma/\beta}\rceil}}^{\infty}t^{2(1-\alpha)}. 
+ 
+ 
+ 
+ 
+ 
+ Remark 14. 
+ 
+ The multiplicative constant (2\eta-1)/(\eta-1) in Theorem 2 arises from Lemma 4 . When m=0 (see Remark 8 ), honest agents only recommend the best arm after A_{\tau} , so they do not play additional non-sticky arms. Hence, they do not incur the regret from Lemma 4 , so this multiplicative constant can be removed. 
+ 
+ 
+ 
+ We next bound \mathbb{E}R_{T}^{(i)}-\mathbb{E}A_{\tau} in each of two different cases. For the first case, we assume 
+ 
+
+ 
+ (36) 
+ 
+ \textstyle\frac{2\eta-1}{\eta-1}\sum_{k=2}^{m+3}\frac{1}{\Delta_{k}}+\sum_{k=m+4}^{S+m+4}\frac{1}{\Delta_{k}}\leq\sum_{k=2}^{K}\frac{1}{\Delta_{k}}. 
+ 
+ 
+ Set \gamma=\Delta_{2}/(K\Delta_{S+m+4})\in(0,1) . By Lemmas 2 and 4 , and the second bound from Lemma 3 , 
+ 
+
+ 
+ (37) 
+ 
+ \displaystyle\mathbb{E}R_{T}^{(i)}-\mathbb{E}A_{\tau} 
+ \displaystyle\textstyle\leq\frac{8\alpha\beta(K+\log_{\eta}(\frac{K}{\Delta_{2}})(m+2))}{\Delta_{2}} 
+ 
+ 
+ (38) 
+ 
+ 
+ \displaystyle\textstyle\quad+2(|\underline{S}^{(i)}|+|\overline{S}^{(i)}|)\sum_{t=1}^{\infty}t^{2(1-\alpha)}, 
+ 
+ 
+ (39) 
+ 
+ 
+ \displaystyle\textstyle\quad+4\alpha\Big(\frac{2\eta-1}{\eta-1}\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{1}{\Delta_{k}} 
+ 
+ 
+ (40) 
+ 
+ 
+ \displaystyle\textstyle\quad\quad\quad\quad+\sum_{k\in\overline{S}^{(i)}}\frac{1}{\Delta_{k}}+\frac{1}{\Delta_{S+m+4}}\Big)\log T 
+ 
+ 
+ where we also used 1/\gamma\leq K/\Delta_{2} in ( 37 ). Note |\underline{S}^{(i)}|+|\overline{S}^{(i)}|=K-1 by definition, and 
+ 
+
+ 
+ (41) 
+ 
+ \textstyle\sum_{t=1}^{\infty}t^{2(1-\alpha)} 
+ 
+ 
+ Also, since \Delta_{k}\leq\Delta_{k+1} and \eta>1 , the term in parentheses in ( 39 )-( 40 ) is maximized if \{2,\ldots,m+3\}\subset\underline{S}^{(i)} and \overline{S}^{(i)}=\{m+4,\ldots,S+m+3\} (note ( 36 ) ensures S+m+3\leq K ). Therefore, 
+ 
+
+ 
+ (42) 
+ 
+ 
+ \displaystyle\textstyle\frac{2\eta-1}{\eta-1}\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{1}{\Delta_{k}}+\sum_{k\in\overline{S}^{(i)}}\frac{1}{\Delta_{k}}+\frac{1}{\Delta_{S+m+4}} 
+ 
+ 
+ (43) 
+ 
+ 
+ \displaystyle\textstyle\leq\frac{2\eta-1}{\eta-1}\sum_{k=2}^{m+3}\frac{1}{\Delta_{k}}+\sum_{k=m+4}^{S+m+4}\frac{1}{\Delta_{k}}. 
+ 
+ 
+ Combining, we have shown that if ( 36 ) holds, 
+ 
+
+ 
+ (44) 
+ 
+ \displaystyle\mathbb{E}R_{T}^{(i)}-\mathbb{E}A_{\tau} 
+ \displaystyle\textstyle\leq 4\alpha\left(\frac{2\eta-1}{\eta-1}\sum_{k=2}^{m+3}\frac{1}{\Delta_{k}}+\sum_{k=m+4}^{S+m+4}\frac{1}{\Delta_{k}}\right)\log T 
+ 
+ 
+ (45) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{8\alpha\beta(K+\log_{\eta}(K/\Delta_{2})(m+2))}{\Delta_{2}}+\frac{4K(\alpha-1)}{2\alpha-3}. 
+ 
+ 
+ If instead ( 36 ) fails, choose any \gamma\in(\log(T-1)/\log(T),1) . Then A_{\lceil T^{\gamma/\beta}\rceil}=\lceil\lceil T^{\gamma/\beta}\rceil^{\beta}\rceil\geq T^{\gamma}>T-1 , so A_{\lceil T^{\gamma/\beta}\rceil}\geq T , and the final term in ( 22 ) is zero. Moreover, A_{\lceil T^{\gamma/\beta}\rceil}\wedge T=T by choice of \gamma . Then by Lemma 2 and the first bound in Lemma 3 , and an integral approximation like ( 41 ), 
+ 
+
+ 
+ (46) 
+ 
+ \textstyle\mathbb{E}R_{T}^{(i)}-\mathbb{E}A_{\tau}\leq 4\alpha\log(T)\sum_{k=2}^{K}\frac{1}{\Delta_{k}}+\frac{4K(\alpha-1)}{2\alpha-3}. 
+ 
+ 
+ To summarize, we showed ( 44 ) holds if ( 36 ) holds and ( 46 ) holds if ( 36 ) fails. The theorem follows by plugging in the estimate for \mathbb{E}A_{\tau} from Lemma 1 and defining the constant 
+ 
+
+ 
+ (47) 
+ 
+ \displaystyle C^{\star} 
+ \displaystyle\textstyle=2^{1+\beta\eta}\left(4+\left(\frac{26\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{2/(\beta-1)}\right)^{\beta\eta} 
+ 
+ 
+ (48) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{2^{\beta(2\alpha-3)+1}n\binom{K}{2}(S+1)}{(2\alpha-3)(\beta(2\alpha-3)-1)((\beta(2\alpha-3)-1)/\eta-\beta)} 
+ 
+ 
+ (49) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{10\beta}{\beta-1}\max\{6(m+n)\max\{\log n,2(\beta-1)\},3(6^{\eta}+2)\}^{\beta} 
+ 
+ 
+ (50) 
+ 
+ 
+ \displaystyle\textstyle\quad+\frac{4K(\alpha-1)}{2\alpha-3}+\frac{8\alpha\beta(K+\log_{\eta}(K/\Delta_{2})(m+2))}{\Delta_{2}} 
+ 
+ 
+ (51) 
+ 
+ 
+ \displaystyle\textstyle=O\Big((\frac{S}{\Delta_{2}^{2}})^{2\beta\eta/(\beta-1)}+SnK^{2}+((m+n)\log n)^{\beta} 
+ 
+ 
+ (52) 
+ 
+ 
+ \displaystyle\textstyle\quad\quad\quad+\frac{K}{\Delta_{2}}+\frac{m}{\Delta_{2}}\log\frac{K}{\Delta_{2}}\Big). 
+ 
+ 
+ 
+ 
+ 
+ 
+ Appendix B Proofs of lemmas for Theorem 2 
+
+ 
+ We begin by proving Lemmas 2 and 3 in Appendices B.1 and B.2 , respectively, which modify standard arguments from the single-agent setting ( Auer
+et al., 2002 ) to account for random sticky sets. We then prove Lemma 4 in Appendix B.3 , which builds on these arguments but also requires delicate bounds to cope with worst-case malicious agent recommendations and to ensure such agents are blocked. Lastly, we prove Lemma 1 in Appendix B.4 , which leverages a result from the cooperative setting ( Chawla et al., 2020b ) but requires nontrivial modification due to accidental blocking among honest agents. To avoid cluttering these proofs, we defer some proofs that tedious calculations to Appendix B.5 . Moving forward, we define A^{-1}(t)=\inf\{j\in\mathbb{N}:t\leq A_{j}\} . Note I_{t}^{(i)}\in S_{A^{-1}(t)}^{(i)} , i.e., at time t , agent i chooses an arm from S_{A^{-1}(t)}^{(i)}\subset\{1,\ldots,K\} . 
+ 
+ 
+ B.1. Late regret from sticky arms (proof of Lemma 2 ) 
+
+ 
+ We bound the number of pulls of k\in\overline{S}^{(i)} using ideas from ( Auer
+et al., 2002 ) . First, we write 
+ 
+
+ 
+ (53) 
+ 
+ \displaystyle\mathbb{E}\sum_{t=A_{\tau}+1}^{T}1(I_{t}^{(i)}=k) 
+ \displaystyle=\mathbb{E}\sum_{t=A_{\tau}+1}^{T}1\left(I_{t}^{(i)}=k,T_{k}^{(i)}(t-1) 
+ 
+ 
+ (54) 
+ 
+ 
+ \displaystyle\quad\quad+\mathbb{E}\sum_{t=A_{\tau}+1}^{T}1\left(I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log T}{\Delta_{k}^{2}}\right). 
+ 
+ 
+ By definition T_{k}^{(i)}(t-1)=\sum_{s=1}^{t-1}1(I_{s}^{(i)}=k) , we can bound ( 53 ) by observing that, almost surely, 
+ 
+
+ 
+ (55) 
+ 
+ \sum_{t=A_{\tau}+1}^{T}1\left(I_{t}^{(i)}=k,T_{k}^{(i)}(t-1) 
+ 
+ 
+ To bound ( 54 ), we first note 
+ 
+
+ 
+ (56) 
+ 
+ 
+ \displaystyle\mathbb{E}\sum_{t=A_{\tau}+1}^{T}1\left(I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log T}{\Delta_{k}^{2}}\right)=\sum_{t=1}^{T}\mathbb{P}\left(t>A_{\tau},I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log T}{\Delta_{k}^{2}}\right). 
+ 
+ 
+ Now let t\in\{1,\ldots,T\} . Note t>A_{\tau} implies A^{-1}(t)>\tau by definition of A^{-1} , which by ( 21 ) implies 1\in S_{A^{-1}(t)}^{(i)} (i.e., i is aware of arm 1 at t ). Thus, t>A_{\tau} and I_{t}^{(i)}=k imply agent i chose arm k over arm 1 at time t , which implies 
+ 
+
+ 
+ (57) 
+ 
+ \bar{X}_{1,T_{1}^{(i)}(t-1)}^{(i)}+c_{t,T_{1}^{(i)}(t-1)}\leq\bar{X}_{k,T_{k}^{(i)}(t-1)}^{(i)}+c_{t,T_{k}^{(i)}(t-1)}, 
+ 
+ 
+ where \bar{X}_{k,s}^{(i)} is the average of s independent \text{Bernoulli}(\mu_{k}) random variables and c_{t,s}=\sqrt{\alpha\log(t)/s} . Thus, 
+ 
+
+ 
+ (58) 
+ 
+ \displaystyle\mathbb{P}\left(t>A_{\tau},I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log T}{\Delta_{k}^{2}}\right) 
+ \displaystyle\leq\mathbb{P}\left(\bar{X}_{1,T_{1}^{(i)}(t-1)}^{(i)}+c_{t,T_{1}^{(i)}(t-1)}\leq\bar{X}_{k,T_{k}^{(i)}(t-1)}^{(i)}+c_{t,T_{k}^{(i)}(t-1)},T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log T}{\Delta_{k}^{2}}\right) 
+ 
+ 
+ (59) 
+ 
+ 
+ \displaystyle\leq 2t^{2(1-\alpha)}, 
+ 
+ 
+ where the second inequality is the classical bound from ( Auer
+et al., 2002 ) . Substituting into ( 54 ), 
+ 
+
+ 
+ (60) 
+ 
+ \mathbb{E}\sum_{t=A_{\tau}+1}^{T}1\left(I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log T}{\Delta_{k}^{2}}\right)\leq 2\sum_{t=1}^{\infty}t^{2(1-\alpha)}. 
+ 
+ 
+ Finally, plugging ( 60 ) into ( 54 ) and ( 55 ) into ( 53 ) and summing over k completes the proof. 
+ 
+ 
+ 
+ B.2. Intermediate regret from non-sticky arms (proof of Lemma 3 ) 
+
+ 
+ The first bound follows by replacing T with A_{\lceil T^{\gamma/\beta}\rceil}\wedge T and \overline{S}^{(i)} with \underline{S}^{(i)} in the proof of Lemma 2 , but otherwise repeating the same arguments. For the second bound, first note 
+ 
+
+ 
+ (61) 
+ 
+ A_{\lceil T^{\gamma/\beta}\rceil}=\lceil\lceil T^{\gamma/\beta}\rceil^{\beta}\rceil\leq(T^{\gamma/\beta}+1)^{\beta}+1\leq 2^{\beta+1}T^{\gamma} 
+ 
+ 
+ where the first inequality is \lceil x\rceil\leq x+1 , the second uses T\geq 1 , and the third uses \beta>1 . Therefore, 
+ 
+
+ 
+ (62) 
+ 
+ \log(A_{\lceil T^{\gamma/\beta}\rceil}\wedge T)\leq\log(A_{\lceil T^{\gamma/\beta}\rceil}) 
+ 
+ 
+ Combined with the inequalities \Delta_{2}\leq\Delta_{k} and |\underline{S}^{(i)}| 
+ 
+
+ 
+ (63) 
+ 
+ \sum_{k\in\underline{S}^{(i)}}\frac{4\alpha\log(A_{\lceil T^{\gamma/\beta}\rceil}\wedge T)}{\Delta_{k}} 
+ 
+ 
+ 
+ 
+ 
+ B.3. Late regret from non-sticky arms (proof of Lemma 4 ) 
+
+ 
+ For each k\in\underline{S}^{(i)} and each l,t\in\mathbb{N} , define the random variables 
+ 
+
+ 
+ (64) 
+ 
+ \displaystyle X_{k,l,t}=1\left(t>A_{\tau},I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T)}{\Delta_{k}^{2}}\right),\quad Y_{k,l,t}=1\left(t>A_{\tau},I_{t}^{(i)}=k,T_{k}^{(i)}(t-1) 
+ 
+ 
+ We can then rewrite the number of pulls of arm k\in\underline{S}^{(i)} after time A_{\lceil T^{\gamma/\beta}\rceil\vee\tau} as 
+ 
+
+ 
+ (65) 
+ 
+ \displaystyle\sum_{t=A_{\lceil T^{\gamma/\beta}\rceil\vee\tau}+1}^{T}1(I_{t}^{(i)}=k)=\sum_{t=A_{\lceil T^{\gamma/\beta}\rceil}+1}^{T}1(t>A_{\tau},I_{t}^{(i)}=k)=\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{t=1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil}}^{A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T}(X_{k,l,t}+Y_{k,l,t}). 
+ 
+ 
+ (Note the first term of the double summation on the right expression corresponds to time 1+A_{\lceil T^{\gamma\eta^{1-1}/\beta}\rceil}=1+A_{\lceil T^{\gamma/\beta}\rceil} , and the final term corresponds to time 
+ 
+
+ 
+ (66) 
+ 
+ A_{\lceil T^{\gamma\eta^{\lceil\log_{\eta}(1/\gamma)\rceil}/\beta}\rceil}\wedge T=\lceil\lceil T^{\gamma\eta^{\lceil\log_{\eta}(1/\gamma)\rceil}/\beta}\rceil^{\beta}\rceil\wedge T=T, 
+ 
+ 
+ so all summands in the middle expression are accounted for in the right expression of ( 65 ).) Therefore, 
+ 
+
+ 
+ (67) 
+ 
+ \displaystyle\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\mathbb{E}\sum_{t=A_{\lceil T^{\gamma/\beta}\rceil\vee\tau}+1}^{T}1(I_{t}^{(i)}=k) 
+ \displaystyle\leq\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{t=1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil}}^{A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T}\mathbb{P}(X_{k,l,t}=1)\quad 
+ 
+ 
+ (68) 
+ 
+ 
+ \displaystyle\quad+\mathbb{E}\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\sum_{t=1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil}}^{A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}}Y_{k,l,t}.\quad 
+ 
+ 
+ (Note we also used A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T\leq A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil} in ( 68 ).) We next bound ( 67 ). Choose any k\in\underline{S}^{(i)} , l\in\{1,\ldots,\lceil\log_{\eta}(1/\gamma)\rceil\} , and t\in\{1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil},\ldots,A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T\} . Then following the argument leading to ( 59 ) in the proof of Lemma 2 , 
+ 
+
+ 
+ (69) 
+ 
+ \mathbb{P}(X_{k,l,t}=1)=\mathbb{P}\left(t>A_{\tau},I_{t}^{(i)}=k,T_{k}^{(i)}(t-1)\geq\frac{4\alpha\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T)}{\Delta_{k}^{2}}\right)\leq 2t^{2(1-\alpha)}. 
+ 
+ 
+ (To be precise, T should be replaced by A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T in this argument; the same argument then applies since we are considering t\leq A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T .) We thus obtain the following bound for ( 67 ): 
+ 
+
+ 
+ (70) 
+ 
+ \sum_{k\in\underline{S}^{(i)}}\Delta_{k}\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{t=1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil}}^{A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T}\mathbb{P}(X_{k,l,t}=1)\leq 2|\underline{S}^{(i)}|\sum_{t=1+A_{\lceil T^{\gamma/\beta}\rceil}}^{\infty}t^{2(1-\alpha)}. 
+ 
+ 
+ 
+ 
+ To bound ( 68 ), we begin with two key claims. The first claim roughly says that if arm k is pulled at time A_{T^{\gamma\eta^{l-1}/\beta}} 71 ) does not depend on t , which will be crucial later (see ( 83 ) below). 
+ 
+ 
+ Claim 1. 
+ 
+ For any l\in\{1,\ldots,\lceil\log_{\eta}(1/\gamma)\rceil , k\in\underline{S}^{(i)} , and t\in\{1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil},\ldots,A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\} , 
+ 
+
+ 
+ (71) 
+ 
+ Y_{k,l,t}=1\left(k\in\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}\right)Y_{k,l,t}\ a.s. 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ Fix l,k,t . Recall Y_{k,l,t} is binary-valued, so it suffices to show 
+ 
+
+ 
+ (72) 
+ 
+ Y_{k,l,t}=1\quad\Rightarrow\quad k\in\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}. 
+ 
+ 
+ We prove ( 72 ) by contradiction: assume instead that Y_{k,l,t}=1 and 
+ 
+
+ 
+ (73) 
+ 
+ k\notin\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}. 
+ 
+ 
+ Recall Y_{k,l,t}=1 implies t>A_{\tau} by definition of Y_{k,l,t} ; since t\in\{1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil},\ldots,A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\} in the statement of the claim, we conclude 
+ 
+
+ 
+ (74) 
+ 
+ t\in\{1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau},\ldots,A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\}. 
+ 
+ 
+ It follows by definition of A^{-1} that A^{-1}(t)\in\{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau,\ldots,\lceil T^{\gamma\eta^{l}/\beta}\rceil\} , so 
+ 
+
+ 
+ (75) 
+ 
+ S_{A^{-1}(t)}^{(i)}\subset\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}. 
+ 
+ 
+ Comparing ( 73 ) and ( 75 ) shows k\notin S_{A^{-1}(t)} (i.e., k is not an active arm at time t ); this implies I_{t}^{(i)}\neq k (i.e., k is not pulled at time t ), contradicting Y_{k,l,t}=1 by definition.
+∎ 
+ 
+ 
+ 
+ The second claim bounds the sum of inverse arm gaps for suboptimal non-sticky arms pulled between phases T^{\gamma\eta^{l-1}/\beta} and T^{\gamma\eta^{l}/\beta} . The idea is that each of m malicious agents can only recommend one such arm between these phases (since if this recommendation occurs at phase j\geq T^{\gamma\eta^{l-1}/\beta} , the agent is blocked until j^{\eta}\geq T^{\gamma\eta^{l}/\beta} ). Similar to the previous claim, the upper bound is uniform across l , which is crucial in its application ( 85 ). 
+ 
+ 
+ Claim 2. 
+ 
+ For any l\in\{1,\ldots,\lceil\log_{\eta}(1/\gamma)\rceil\} , 
+ 
+
+ 
+ (76) 
+ 
+ \sum_{k\in\underline{S}^{(i)}}\frac{1}{\Delta_{k}}1\left(k\in\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}\right)\leq\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{1}{\Delta_{k}}\ a.s. 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ Fix l\in\{1,\ldots,\lceil\log_{\eta}(1/\gamma)\rceil\} and define the set 
+ 
+
+ 
+ (77) 
+ 
+ \underline{S}^{(i)}(l)=\underline{S}^{(i)}\cap\left(\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}\right). 
+ 
+ 
+ Note it suffices to show |\underline{S}^{(i)}(l)|\leq m+2\ a.s. ; indeed, if this inequality holds, we obtain 
+ 
+
+ 
+ (78) 
+ 
+ \sum_{k\in\underline{S}^{(i)}}\frac{1}{\Delta_{k}}1\left(k\in\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}\right)=\sum_{k\in\underline{S}^{(i)}(l)}\frac{1}{\Delta_{k}}\leq\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{1}{\Delta_{k}}\ a.s. 
+ 
+ 
+ 
+ 
+ To prove |\underline{S}^{(i)}(l)|\leq m+2 , we show |\underline{S}^{(i)}(l)|>m+2 yields a contradiction. If |\underline{S}^{(i)}|\leq m+2 , we are done, so we assume \underline{S}^{(i)}\geq m+3 . For this nontrivial case, we begin with some definitions. First, let k_{1},\ldots,k_{m+3} be distinct elements of \underline{S}^{(i)}(l) . For b\in\{1,\ldots,m+3\} , set 
+ 
+
+ 
+ (79) 
+ 
+ j_{b}=\min\left\{j\in\{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau,\ldots,\lceil T^{\gamma\eta^{l}/\beta}\rceil\}:k_{b}\in S_{j}^{(i)}\right\}. 
+ 
+ 
+ Note j_{b} is well-defined since k_{b}\in\underline{S}^{(i)}(l) . Also note we can assume (without loss of generality, after possibly relabeling \{k_{b}\}_{b=1}^{m+3} ) that j_{1}\leq\cdots\leq j_{m+3} . We claim 
+ 
+
+ 
+ (80) 
+ 
+ j_{b}>\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau\ \forall\ b\in\{3,\ldots,m+3\}. 
+ 
+ 
+ This is easily proven by contradiction. Suppose j_{b}=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau for some b\geq 3 . Then since j_{1}\leq\cdots\leq j_{b} by assumption and j_{b^{\prime}}\geq\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau\ \forall\ b^{\prime} by definition, we must have j_{1}=\cdots=j_{b} . Consequently, k_{1},\ldots,k_{b}\in S_{j_{1}}^{(i)} , which implies |S_{j_{1}}^{(i)}\cap\underline{S}^{(i)}|\geq|\{k_{1},\ldots,k_{b}\}|\geq 3 ; in words, S_{j_{1}}^{(i)} contains three non-sticky arms. But S_{j_{1}}^{(i)} contains exactly two non-sticky arms in Algorithm 1 , so we have a contradiction. 
+ 
+ 
+ Having established ( 80 ), and using the definition ( 79 ), we conclude k_{b}\in S_{j_{b}}^{(i)}\setminus S_{j_{b}-1}^{(i)}\ \forall\ b\in\{3,\ldots,m+3\} , i.e., k_{b} was not active at phase j_{b}-1 but became active at phase j_{b} . Also note |S_{j_{b}}^{(i)}\setminus S_{j_{b}-1}^{(i)}|\leq 1 in Algorithm 1 , i.e., at most one arm is newly-active at each phase. Combined with the fact that \{k_{b}\}_{b=3}^{m+3} are distinct arms, \{j_{b}\}_{b=3}^{m+3} must be distinct phases. Therefore, 
+ 
+
+ 
+ (81) 
+ 
+ \lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau 
+ 
+ 
+ 
+ 
+ Next, note k_{b}\in S_{j_{b}}^{(i)}\setminus S_{j_{b}-1}^{(i)} implies k_{b}=R_{j_{b}-1}^{(i)} (i.e., k_{b} was recommended at phase j_{b}-1 ). Further, k_{b}\in\underline{S}^{(i)} implies k_{b}\neq 1 (since \underline{S}^{(i)} is a subset of suboptimal arms) and j_{b}>\tau implies j_{b}-1\geq\tau (since j_{b}\in\mathbb{N} ); taken together, we must have H_{j_{b}-1}^{(i)}\in\{n+1,\ldots,n+m\} (i.e., the arm k_{b} was recommended by a malicious agent, which follows from ( 21 )). Since \{j_{b}\}_{b=3}^{m+3} and \{n+1,\ldots,n+m\} contain m+1 and m elements, respectively, the pigeonhole principle says that for some i^{*}\in\{n+1,\ldots,n+m\} , b,b^{\prime}\in\{3,\ldots,m+3\} such that b\neq b^{\prime} ,
+ H_{j_{b}-1}^{(i)}=H_{j_{b^{\prime}}-1}^{(i)}=i^{*} . Assume (without loss of generality) that b \tau , ( 21 ) implies B_{j_{b}}^{(i)}=1 ; thus, B_{j_{b}}^{(i)}\neq R_{j_{b}-1}^{(i)} . It follows from Algorithm 3 that i^{*}\in P_{j}^{(i)}\ \forall\ j\in\{j_{b},\ldots\lceil j_{b}^{\eta}\rceil\} , i.e., malicious agent i^{*} was blocked until phase \lceil j_{b}^{\eta}\rceil . But by ( 81 ) and the fact that \eta>1 , 
+ 
+
+ 
+ (82) 
+ 
+ \lceil j_{b}^{\eta}\rceil\geq j_{b}^{\eta}\geq(T^{\gamma\eta^{l-1}/\beta}+1)^{\eta}\geq T^{\gamma\eta^{l}/\beta}+1\geq\lceil T^{\gamma\eta^{l}/\beta}\rceil\geq j_{b^{\prime}}>j_{b^{\prime}}-1, 
+ 
+ 
+ so that i^{*}\in P_{j_{b^{\prime}}-1}^{(i)} , contradicting H_{j_{b^{\prime}}-1}^{(i)}=i^{*} .
+∎ 
+ 
+ 
+ 
+ Using these claims, we derive an almost-sure bound for the sum of random variables in ( 68 ): 
+ 
+
+ 
+ (83) 
+ 
+ \displaystyle\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{k\in\underline{S}^{(i)}}\Delta_{k}\sum_{t=1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil}}^{A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}}Y_{k,l,t} 
+ \displaystyle=\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{k\in\underline{S}^{(i)}}1\left(k\in\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}\right)\left(\Delta_{k}\sum_{t=1+A_{\lceil T^{\gamma\eta^{l-1}/\beta}\rceil}}^{A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}}Y_{k,l,t}\right) 
+ 
+ 
+ (84) 
+ 
+ 
+ \displaystyle\leq\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\sum_{k\in\underline{S}^{(i)}}1\left(k\in\cup_{j=\lceil T^{\gamma\eta^{l-1}/\beta}\rceil\vee\tau}^{\lceil T^{\gamma\eta^{l}/\beta}\rceil}S_{j}^{(i)}\right)\frac{4\alpha\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T)}{\Delta_{k}} 
+ 
+ 
+ (85) 
+ 
+ 
+ \displaystyle\leq 4\alpha\left(\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{1}{\Delta_{k}}\right)\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T) 
+ 
+ 
+ (86) 
+ 
+ 
+ \displaystyle\leq\frac{2\eta-1}{\eta-1}\max_{\tilde{S}\subset\underline{S}^{(i)}:|\tilde{S}|\leq m+2}\sum_{k\in\tilde{S}}\frac{4\alpha\log T}{\Delta_{k}}+\frac{8\alpha\beta\log_{\eta}(1/\gamma)(m+2)}{\Delta_{2}}. 
+ 
+ 
+ Here the first equality uses Claim 1 , the first inequality holds by the argument of ( 55 ) in the proof of Lemma 2 , the second uses Claim 2 , and the third uses Claim 5 from Appendix B.5 and \Delta_{2}\leq\Delta_{k} . The proof of the lemma is completed by substituting ( 70 ) into ( 67 ) and ( 86 ) into ( 68 ). 
+ 
+ 
+ 
+ B.4. Early regret (proof of Lemma 1 ) 
+
+ 
+ We begin with a simple identity: for any j^{\prime}\in\mathbb{N} , 
+ 
+
+ 
+ (87) 
+ 
+ A_{j^{\prime}}=\sum_{j=1}^{j^{\prime}}(A_{j}-A_{j-1})=\sum_{j=1}^{\infty}(A_{j}-A_{j-1})1(j\leq j^{\prime}). 
+ 
+ 
+ Using this identity and rearranging summations yields 
+ 
+
+ 
+ (88) 
+ 
+ \mathbb{E}A_{\tau}=\sum_{j^{\prime}=1}^{\infty}A_{j^{\prime}}\mathbb{P}(\tau=j^{\prime})=\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau\geq j). 
+ 
+ 
+ Now define f:\mathbb{N}\rightarrow\mathbb{N} by f(j)=\lceil 2+j^{1/\eta}/2\rceil\ \forall\ j\in\mathbb{N} . Then clearly 
+ 
+
+ 
+ (89) 
+ 
+ \mathbb{P}(\tau\geq j)\leq\mathbb{P}(\tau_{stab}\geq f(j))+\mathbb{P}(\tau_{stab} 
+ 
+ 
+ Combining the above, we obtain 
+ 
+
+ 
+ (90) 
+ 
+ \mathbb{E}A_{\tau}\leq\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau_{stab}\geq f(j))+\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau_{stab} 
+ 
+ 
+ 
+ 
+ While the definition of f is somewhat opaque, the key property is that f(j)=\Theta(j^{1/\eta}) (the constants are chosen for analytical convenience). This property ensures that if \tau_{stab} not be blocked at phase \Theta(j) (since i^{*} only recommends arm 1 , and i subsequently pulls this arm most frequently, after \tau_{stab} ). This idea allows us to bound the second term in ( 90 ). The first term in ( 90 ) can be bounded using tail bounds for \tau_{stab} from ( Chawla et al., 2020b ) . 
+ 
+ 
+ Claim 3. 
+ 
+ Under the assumptions of Lemma 1 , 
+ 
+
+ 
+ (91) 
+ 
+ \displaystyle\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau_{stab}\geq f(j)) 
+ \displaystyle\leq 2^{1+\beta\eta}\left(4+\left(\frac{26\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{2/(\beta-1)}\right)^{\beta\eta}+\frac{2^{\beta(2\alpha-3)+1}n\binom{K}{2}(S+1)}{(2\alpha-3)(\beta(2\alpha-3)-1)((\beta(2\alpha-3)-1)/\eta-\beta)}. 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ We first use ideas from ( Chawla et al., 2020b ) to derive a tail bound for \tau_{stab} . To begin, let 
+ 
+
+ 
+ (92) 
+ 
+ j_{1}^{*}=\min\left\{j\in\mathbb{N}:\frac{A_{j^{\prime}}-A_{j^{\prime}-1}}{S+2}\geq 1+\frac{4\alpha\log A_{j^{\prime}}}{\Delta_{2}^{2}}\ \forall\ j^{\prime}\in\{f(j),f(j)+1,\ldots\}\right\}, 
+ 
+ 
+ and fix j\geq j_{1}^{*} . Note that by definition of \tau_{stab} and the union bound, 
+ 
+
+ 
+ (93) 
+ 
+ \mathbb{P}(\tau_{stab}\geq f(j))\leq\sum_{i=1}^{n}\sum_{j^{\prime}=f(j)}^{\infty}\mathbb{P}(\chi_{j^{\prime}}^{(i)}=1). 
+ 
+ 
+ Now since j\geq j_{1}^{*} and f is increasing, f(j)\geq f(j_{1}^{*}) , so by definition, any j^{\prime}\geq f(j) satisfies 
+ 
+
+ 
+ (94) 
+ 
+ \frac{A_{j^{\prime}}-A_{j^{\prime}-1}}{S+2}\geq 1+\frac{4\alpha\log A_{j^{\prime}}}{\Delta_{2}^{2}}. 
+ 
+ 
+ This is the assumption of ( Chawla et al., 2020b , Lemma 8) , so we can apply this lemma to obtain 
+ 
+
+ 
+ (95) 
+ 
+ \mathbb{P}(\chi_{j^{\prime}}^{(i)}=1)\leq\frac{2\binom{K}{2}(S+1)}{2\alpha-3}A_{j^{\prime}-1}^{-(2\alpha-3)}. 
+ 
+ 
+ (Note \beta,\eta>1,1+\beta\eta 0 . Also, \lceil K/n\rceil appears in ( Chawla et al., 2020b , Lemma 8) instead of S , because ( Chawla et al., 2020b ) assumes S=\lceil K/n\rceil ; however, the proof follows for general S .) Thus, 
+ 
+
+ 
+ (96) 
+ 
+ \displaystyle\sum_{j^{\prime}=f(j)}^{\infty}\mathbb{P}(\chi_{j^{\prime}}^{(i)}=1) 
+ \displaystyle\leq\frac{2\binom{K}{2}(S+1)}{2\alpha-3}\sum_{j^{\prime}=f(j)}^{\infty}A_{j^{\prime}-1}^{-(2\alpha-3)} 
+ 
+ 
+ We estimate the summation on the right side with an integral as follows: 
+ 
+
+ 
+ (97) 
+ 
+ \displaystyle\sum_{j^{\prime}=f(j)}^{\infty}A_{j^{\prime}-1}^{-(2\alpha-3)} 
+ \displaystyle=\sum_{j^{\prime}=f(j)}^{\infty}\lceil(j^{\prime}-1)^{\beta}\rceil^{-(2\alpha-3)}\leq\sum_{j^{\prime}=f(j)}^{\infty}(j^{\prime}-1)^{-\beta(2\alpha-3)} 
+ 
+ 
+ (98) 
+ 
+ 
+ \displaystyle\leq\int_{j^{\prime}=f(j)}^{\infty}(j^{\prime}-2)^{-\beta(2\alpha-3)}dj^{\prime}=\frac{(f(j)-2)^{1-\beta(2\alpha-3)}}{\beta(2\alpha-3)-1}\leq\frac{2^{\beta(2\alpha-3)-1}j^{(1-\beta(2\alpha-3))/\eta}}{\beta(2\alpha-3)-1}, 
+ 
+ 
+ where the final inequality is by definition of f(j) (note 1+\beta\eta 0 .) Together with ( 93 ) and ( 96 ), we have shown 
+ 
+
+ 
+ (99) 
+ 
+ \mathbb{P}(\tau_{stab}\geq f(j))\leq\frac{2^{\beta(2\alpha-3)}n\binom{K}{2}(S+1)j^{(1-\beta(2\alpha-3))/\eta}}{(2\alpha-3)(\beta(2\alpha-3)-1)}\ \forall\ j\geq j_{1}^{*}. 
+ 
+ 
+ 
+ 
+ Using this tail bound, we bound the quantity of interest. First, we note that since A_{j}=\lceil j^{\beta}\rceil , the mean value theorem guarantees that for any j\in\mathbb{N} and some \tilde{j}\in(j-1,j) , 
+ 
+
+ 
+ (100) 
+ 
+ A_{j}-A_{j-1}\leq j^{\beta}-(j-1)^{\beta}+1=\beta\tilde{j}^{\beta-1}+1\leq\beta j^{\beta-1}+1\leq 2\beta j^{\beta-1}. 
+ 
+ 
+ Combining the previous two inequalities, we thus obtain 
+ 
+
+ 
+ (101) 
+ 
+ \displaystyle\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau_{stab}\geq f(j)) 
+ \displaystyle\leq A_{j_{1}^{*}}+\frac{2^{\beta(2\alpha-3)+1}\beta n\binom{K}{2}(S+1)}{(2\alpha-3)(\beta(2\alpha-3)-1)}\sum_{j=j_{1}^{*}+1}^{\infty}j^{-1+\beta+(1-\beta(2\alpha-3))/\eta} 
+ 
+ 
+ (102) 
+ 
+ 
+ \displaystyle\leq A_{j_{1}^{*}}+\frac{2^{\beta(2\alpha-3)+1}n\binom{K}{2}(S+1)}{(2\alpha-3)(\beta(2\alpha-3)-1)((\beta(2\alpha-3)-1)/\eta-\beta)}, 
+ 
+ 
+ where the second inequality holds by an integral approximation like ( 98 ) and uses 1+\beta\eta 6 from Appendix B.5 with \lambda=1 , we have 
+ 
+
+ 
+ (103) 
+ 
+ A_{j_{1}^{*}}\leq(j_{1}^{*})^{\beta}+1\leq 2(j_{1}^{*})^{\beta}\leq 2^{1+\beta\eta}\left(4+\left(\frac{26\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{2/(\beta-1)}\right)^{\beta\eta}. 
+ 
+ 
+ Combining the previous two inequalities completes the proof.
+∎ 
+ 
+ 
+ 
+ Remark 15. 
+ 
+ The \Delta_{2}^{-4\beta\eta/(\beta-1)} scaling of our regret bound arises from ( 103 ). For any fixed \varepsilon>0 , this can be improved to \Delta_{2}^{-2(1+\varepsilon)^{2}\beta/(\beta-1)} by setting \eta=1+\varepsilon in the algorithm and choosing \lambda=1/\varepsilon (instead of \lambda=1 ) when applying Claim 6 . However, choosing \lambda=1/\varepsilon inflates the constant 26 to 13(1+1/\varepsilon) , so this only works for fixed \varepsilon . Owing to this, and to simplify our ultimate regret bound, we simply choose \lambda=1 . 
+ 
+ 
+ 
+ Claim 4. 
+ 
+ Under the assumptions of Lemma 1 , 
+ 
+
+ 
+ (104) 
+ 
+ \displaystyle\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau_{stab} 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ We begin by bounding the probability terms for large j . In particular, we define 
+ 
+
+ 
+ (105) 
+ 
+ \displaystyle j_{2}^{*}=\min\{ 
+ \displaystyle j\in\mathbb{N}\cap[\max\{8,6(m+n)\max\{\log n,2(\beta-1)\}\},\infty):j^{\prime}\geq 3\lceil f(j^{\prime})^{\eta}\rceil/2\ \forall\ j^{\prime}\in\{j,j+1,\ldots\}\}, 
+ 
+ 
+ and we derive a bound j\in\{j_{2}^{*}+1,j_{2}^{*}+2,\ldots\} . We first note that by definition of f and since \eta>1 , 
+ 
+
+ 
+ (106) 
+ 
+ j\geq\frac{3\lceil f(j)^{\eta}\rceil}{2}\geq\frac{3f(j)}{2}=f(j)+\frac{f(j)}{2}\geq f(j)+\frac{\lceil 5/2\rceil}{2}=f(j)+\frac{3}{2}. 
+ 
+ 
+ Now to bound the probability terms, we first use the definition of \tau and the union bound to write 
+ 
+
+ 
+ (107) 
+ 
+ \mathbb{P}(\tau_{stab} j-1). 
+ 
+ 
+ We fix i\in\{1,\ldots,n\} and bound the i -th summand in ( 107 ). We first observe 
+ 
+
+ 
+ (108) 
+ 
+ \tau_{stab} j-1\quad\Rightarrow\quad\tau_{stab} 
+ 
+ 
+ which is easily proven by contradiction: if the left side of ( 108 ) holds but 1\in S_{j-1}^{(i)} , ( 106 ) ensures j-1>f(j)>\tau_{stab} , so j-1\in\{j^{\prime}\geq\tau_{stab}:1\in S_{j^{\prime}}^{(i)}\} , contradicting the left side of ( 108 ). From ( 108 ), we immediately see the i -th summand in ( 107 ) is zero if 1\in\hat{S}^{(i)} . In the nontrivial case 1\notin\hat{S}^{(i)} , we let i^{*} be any agent with 1\in\hat{S}^{(i^{*})} (such an agent exists by assumption) and claim 
+ 
+
+ 
+ (109) 
+ 
+ \tau_{stab} 
+ 
+ 
+ Suppose instead that H_{j^{\prime}}^{(i)}=i^{*} for some j^{\prime}\in\{f(j)-1,\ldots,j-2\} (note the set is nonempty by ( 106 )). Then since j^{\prime}\geq f(j)-1\geq\tau_{stab} , the definition of \tau_{stab} ensures R_{j^{\prime}}^{(i)}=1 ( i^{*} only recommends 1 at and after \tau_{stab} ), so 1\in S_{j^{\prime}+1}^{(i)} by Algorithm 1 . If j^{\prime}=j-2 , this contradicts 1\notin S_{j-1}^{(i)}=S_{j^{\prime}+1}^{(i)} . If j^{\prime} 109 ). However, it will be more convenient to use a weaker version (which follows from ( 109 ) since \lceil f(j)^{\eta}\rceil\geq f(j) ): 
+ 
+
+ 
+ (110) 
+ 
+ \tau_{stab} 
+ 
+ 
+ (Note (j-2)-(\lceil f(j)^{\eta}\rceil+1)\geq j/3-3\geq 0 since j\geq j_{2}^{*}+1\geq 9 , so the set in ( 110 ) is nonempty.) Finally, we derive one further implication: 
+ 
+
+ 
+ (111) 
+ 
+ \tau_{stab} 
+ 
+ 
+ To prove ( 111 ), we define j^{*}=\sup\{j^{\prime}\in\{2,3,\ldots\}:i^{*}\in P_{j^{\prime}}^{(i)}\setminus P_{j^{\prime}-1}^{(i)}\} to be the latest phase at which i^{*} entered the blocklist. We consider two cases: 
+ 
+ • 
+ 
+ j^{*}>f(j) : First note i^{*}\in P_{j^{*}}^{(i)}\setminus P_{j^{*}-1}^{(i)} implies H_{j^{*}-1}^{(i)}=i^{*} and B_{j^{*}}^{(i)}\neq R_{j^{*}-1}^{(i)} (i.e., to enter the blocklist at j^{*} , i^{*} must recommend an arm to i at j^{*}-1 that was not i ’s most played in phase j^{*} .) Since f(j)>\tau_{stab} and j^{*},f(j),\tau_{stab}\in\mathbb{N} , we must have j_{*}\geq\tau_{stab}+2 , so j^{*}-1>\tau_{stab} , and B_{j^{*}}^{(i)}=R_{j^{*}-1}^{(i)}=1 by definition of \tau_{stab} . Thus, this case cannot occur. 
+ 
+ • 
+ 
+ j^{*}\leq f(j) : Suppose the right side of ( 111 ) fails, i.e., i^{*}\in P_{j^{\prime}}^{(i)} for some j^{\prime}\geq\lceil f(j)^{\eta}\rceil+1 . Then by Algorithm 3 , there must be some phase j_{\star} such that i^{*}\in P_{j_{\star}}^{(i)}\setminus P_{j_{\star}-1}^{(i)} and j^{\prime}\in\{j_{\star},\ldots,\lceil j_{\star}^{\eta}\rceil\} (i.e., i^{*} entered the blocklist at j_{\star} and j^{\prime} lies within the blocking period); in particular, j^{\prime}\leq\lceil j_{\star}^{\eta}\rceil But \lceil j_{\star}^{\eta}\rceil\leq\lceil(j^{*})^{\eta}\rceil\leq\lceil f(j)^{\eta}\rceil 
+ 
+ 
+ 
+ 
+ Stringing together the implications ( 108 ), ( 110 ), and ( 111 ), we have shown 
+ 
+
+ 
+ (112) 
+ 
+ \tau_{stab} j-1\Rightarrow\cap_{j^{\prime}=\lceil f(j)^{\eta}\rceil+1}^{j-2}\{i^{*}\notin P_{j^{\prime}}^{(i)},H_{j^{\prime}}^{(i)}\neq i^{*}\}. 
+ 
+ 
+ We bound the probability of the event at right by writing 
+ 
+
+ 
+ (113) 
+ 
+ 
+ \displaystyle\mathbb{P}(\cap_{j^{\prime}=\lceil f(j)^{\eta}\rceil+1}^{j-2}\{i^{*}\notin P_{j^{\prime}}^{(i)},H_{j^{\prime}}^{(i)}\neq i^{*}\}) 
+ 
+ 
+ (114) 
+ 
+ 
+ \displaystyle\quad\leq\mathbb{P}(H_{j-2}^{(i)}\neq i^{*}|\{i^{*}\notin P_{j-2}^{(i)}\}\cap\cap_{j^{\prime}=\lceil f(j)^{\eta}\rceil+1}^{j-3}\{i^{*}\notin P_{j^{\prime}}^{(i)},H_{j^{\prime}}^{(i)}\neq i^{*}\})\mathbb{P}(\cap_{j^{\prime}=\lceil f(j)^{\eta}\rceil+1}^{j-3}\{i^{*}\notin P_{j^{\prime}}^{(i)},H_{j^{\prime}}^{(i)}\neq i^{*}\}) 
+ 
+ 
+ (115) 
+ 
+ 
+ \displaystyle\quad 
+ 
+ 
+ where the second inequality holds since H_{j-2}^{(i)} is chosen uniformly from [m+n]\setminus(\{i\}\cap P_{j-2}^{(i)}) , which (conditioned on i^{*}\notin P_{j-2}^{(i)} ) contains at most m+n-1 agents, including i^{*} , and the fourth uses m,n\in\mathbb{N} and j\geq 3\lceil f(j)^{\eta}\rceil/2 by definition of j_{2}^{*} . Combining ( 107 ), ( 112 ), and ( 115 ), 
+ 
+
+ 
+ (116) 
+ 
+ \mathbb{P}(\tau_{stab} 
+ 
+ 
+ Finally, we write 
+ 
+
+ 
+ (117) 
+ 
+ \displaystyle\sum_{j=1}^{\infty}(A_{j}-A_{j-1})\mathbb{P}(\tau_{stab} 
+ \displaystyle\leq A_{j_{2}^{*}}+8\beta\sum_{j=j_{2}^{*}+1}^{\infty}j^{\beta-1}n\left(1-\frac{1}{m+n}\right)^{j/3}\leq 2(j_{2}^{*})^{\beta}+\frac{8\beta(j_{2}^{*})^{\beta}}{(\beta-1)n}\leq\frac{10\beta}{\beta-1}(j_{2}^{*})^{\beta} 
+ 
+ 
+ (118) 
+ 
+ 
+ \displaystyle\leq\frac{10\beta}{\beta-1}\max\{6(m+n)\max\{\log n,2(\beta-1)\},3(6^{\eta}+2)\}^{\beta}, 
+ 
+ 
+ where the first inequality follows the argument of ( 100 )-( 101 ) from the proof of Claim 3 , the second uses Claim 7 from Appendix B.5 and A_{j}=\lceil j^{\beta}\rceil\leq j^{\beta}+1\leq 2j^{\beta} , the third uses \beta>1 and n\in\mathbb{N} , and the fourth uses Claim 8 from Appendix B.5 .
+∎ 
+ 
+ 
+ 
+ 
+ B.5. Auxiliary inequalities 
+
+ 
+ Claim 5. 
+ 
+ For any \gamma\in(0,1) , 
+ 
+
+ 
+ (119) 
+ 
+ \sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T)\leq\frac{2\eta-1}{\eta-1}\log(T)+2\beta\log_{\eta}(1/\gamma). 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ We first recall T\wedge A_{\lceil T^{\gamma\eta^{\lceil\log_{\eta}(1/\gamma)\rceil}/\beta}\rceil}=T (see ( 66 )), so 
+ 
+
+ 
+ (120) 
+ 
+ \sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil}\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\wedge T)\leq\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil-1}\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil})+\log(T). 
+ 
+ 
+ For the remaining sum, first note A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil}\leq e^{2\beta}T^{\gamma\eta^{l}} by an argument similar to ( 61 ). Therefore, 
+ 
+
+ 
+ (121) 
+ 
+ \sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil-1}\log(A_{\lceil T^{\gamma\eta^{l}/\beta}\rceil})\leq\gamma\log(T)\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil-1}\eta^{l}+2\beta\log_{\eta}(1/\gamma), 
+ 
+ 
+ where we also used \lceil x\rceil\leq x+1 . On the other hand, we observe 
+ 
+
+ 
+ (122) 
+ 
+ \gamma\log(T)\sum_{l=1}^{\lceil\log_{\eta}(1/\gamma)\rceil-1}\eta^{l}=\gamma\log(T)\frac{\eta^{\lceil\log_{\eta}(1/\gamma)\rceil}-\eta}{\eta-1}\leq\gamma\log(T)\frac{\frac{\eta}{\gamma}-\eta}{\eta-1}\leq\frac{\eta\log T}{\eta-1}, 
+ 
+ 
+ where the equality computes a geometric series, the first inequality uses \lceil x\rceil\leq x+1 , and the second inequality discards a negative term. Combining ( 120 ), ( 121 ) and ( 122 ) completes the proof.
+∎ 
+ 
+ 
+ 
+ Claim 6. 
+ 
+ Assume \alpha\geq 3/2 and let \lambda>0 . Then j_{1}^{*}\leq j_{1} , where j_{1}^{*} is defined in ( 92 ) and 
+ 
+
+ 
+ (123) 
+ 
+ j_{1}=2^{\eta}\left(4+\left(\frac{13(1+\lambda)\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{(1+\lambda)/(\lambda(\beta-1))}\right)^{\eta}. 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ Let j\in\{f(j_{1}),f(j_{1})+1,\ldots\} ; by definition of j_{1}^{*} , we aim show 
+ 
+
+ 
+ (124) 
+ 
+ \frac{A_{j}-A_{j-1}}{S+2}\geq 1+\frac{4\alpha\log A_{j}}{\Delta_{2}^{2}}. 
+ 
+ 
+ First recall f(j_{1})\geq j_{1}^{1/\eta}/2 by definition, so 
+ 
+
+ 
+ (125) 
+ 
+ j\geq f(j_{1})\geq\frac{j_{1}^{1/\eta}}{2}=4+\left(\frac{13(1+\lambda)\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{(1+\lambda)/(\lambda(\beta-1))}\geq\max\left\{4,\left(\frac{13(1+\lambda)\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\right)^{(1+\lambda)/(\lambda(\beta-1))}\right\}. 
+ 
+ 
+ Next, observe that by definition A_{j}=\lceil j^{\beta}\rceil , and since \beta>1 by assumption and j\geq 2 by ( 125 ), 
+ 
+
+ 
+ (126) 
+ 
+ A_{j}\leq j^{\beta}+1\leq 2j^{\beta}\leq 2(2(j-1))^{\beta}=2^{\beta+1}(j-1)^{\beta} 
+ 
+ 
+ Using this inequality, we can write 
+ 
+
+ 
+ (127) 
+ 
+ 1+(S+2)\frac{1+4\alpha\log A_{j}}{\Delta_{2}^{2}}\leq 1+(S+2)\frac{1+8\alpha\beta+4\alpha\beta\log(j-1)}{\Delta_{2}^{2}}. 
+ 
+ 
+ Now since j\geq 4 by ( 125 ), \log(j-1)>1 , so 
+ 
+
+ 
+ (128) 
+ 
+ 1+(S+2)\frac{1+8\alpha\beta+4\alpha\beta\log(j-1)}{\Delta_{2}^{2}} 
+ 
+ 
+ For the term in parentheses, we write 
+ 
+
+ 
+ (129) 
+ 
+ 1+(S+2)\frac{1+12\alpha\beta}{\Delta_{2}^{2}}\leq\frac{S+3+12\alpha\beta(S+2)}{\Delta_{2}^{2}} 
+ 
+ 
+ where the first inequality is \Delta_{2}\leq 1 and the second is S+3\leq\alpha\beta(S+2) (which holds since \alpha\geq 3/2,\beta>1 ). Combining the previous three inequalities, we have shown 
+ 
+
+ 
+ (130) 
+ 
+ \displaystyle 1+(S+2)\frac{1+4\alpha\log A_{j}}{\Delta_{2}^{2}} 
+ \displaystyle\leq\frac{13\alpha\beta(S+2)\log(j-1)}{\Delta_{2}^{2}}=\beta\frac{13(1+\lambda)\alpha(S+2)}{(\beta-1)\Delta_{2}^{2}}\log((j-1)^{(\beta-1)/(1+\lambda)}) 
+ 
+ 
+ (131) 
+ 
+ 
+ \displaystyle\leq\beta(j-1)^{(\beta-1)\lambda/(1+\lambda)}\log((j-1)^{(\beta-1)/(1+\lambda)})\leq\beta(j-1)^{\beta-1}, 
+ 
+ 
+ where the equality rearranges the expression, the second inequality is ( 125 ), and the third inequality is \log x\leq x . Rearranging, we have shown 
+ 
+
+ 
+ (132) 
+ 
+ \frac{1+4\alpha\log A_{j}}{\Delta_{2}^{2}}\leq\frac{\beta(j-1)^{\beta-1}-1}{S+2}\leq\frac{A_{j}-A_{j-1}}{S+2}, 
+ 
+ 
+ where the second inequality holds similar to ( 155 ) in Appendix C .
+∎ 
+ 
+ 
+ 
+ Claim 7. 
+ 
+ Defining j_{2}^{*} as in ( 105 ), 
+ 
+
+ 
+ (133) 
+ 
+ \sum_{j=j_{2}^{*}+1}^{\infty}j^{\beta-1}n\left(1-\frac{1}{m+n}\right)^{j/3}\leq\frac{(j_{2}^{*})^{\beta}}{(\beta-1)n}. 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ We begin by observing that for any j\geq j_{2}^{*}\geq 6(m+n)\log n , 
+ 
+
+ 
+ (134) 
+ 
+ \left(1-\frac{1}{m+n}\right)^{j/6}\leq\exp\left(-\frac{j}{6(m+n)}\right)\leq\frac{1}{n}, 
+ 
+ 
+ where we also used 1-x\leq e^{-x} . Consequently, 
+ 
+
+ 
+ (135) 
+ 
+ n\left(1-\frac{1}{m+n}\right)^{j/3}\leq\left(1-\frac{1}{m+n}\right)^{j/6}\leq\left(1-\frac{1}{6(m+n)}\right)^{j}, 
+ 
+ 
+ where the second inequality is Bernoulli’s. Setting p=1/(6(m+n)) , it thus suffices to show 
+ 
+
+ 
+ (136) 
+ 
+ \sum_{j=j_{2}^{*}+1}^{\infty}j^{\beta-1}(1-p)^{j}\leq\frac{(j_{2}^{*})^{\beta}}{(\beta-1)n}. 
+ 
+ 
+ Toward this end, first note that whenever j\geq j_{2}^{*} , 
+ 
+
+ 
+ (137) 
+ 
+ \frac{(j+1)^{\beta-1}(1-p)^{j+1}}{j^{\beta-1}(1-p)^{j}}=\left(1+\frac{1}{j}\right)^{\beta-1}(1-p)\leq e^{(\beta-1)/j}(1-p) 
+ 
+ 
+ where the first and third inequalities are 1+x\leq e^{x} and the second uses (\beta-1)/j\leq p/2 136 ) are decreasing, which implies 
+ 
+
+ 
+ (138) 
+ 
+ \sum_{j=j_{2}^{*}+1}^{\infty}j^{\beta-1}(1-p)^{j}\leq\int_{j=j_{2}^{*}}^{\infty}j^{\beta-1}(1-p)^{j}dj. 
+ 
+ 
+ To bound the integral, we write 
+ 
+
+ 
+ (139) 
+ 
+ \displaystyle\int_{j=j_{2}^{*}}^{\infty}j^{\beta-1}(1-p)^{j}dj 
+ \displaystyle=\frac{1}{\log(1/(1-p))}\left((j_{2}^{*})^{\beta-1}(1-p)^{j_{2}^{*}}+\int_{j=j_{2}^{*}}^{\infty}(\beta-1)j^{\beta-2}(1-p)^{j}dj\right) 
+ 
+ 
+ (140) 
+ 
+ 
+ \displaystyle\leq\frac{1}{p}\left((j_{2}^{*})^{\beta-1}(1-p)^{j_{2}^{*}}+\int_{j=j_{2}^{*}}^{\infty}(\beta-1)j^{\beta-2}(1-p)^{j}dj\right)=\frac{(j_{2}^{*})^{\beta-1}(1-p)^{j_{2}^{*}}}{p}+\int_{j=j_{2}^{*}}^{\infty}\frac{(\beta-1)j^{\beta-2}}{p}(1-p)^{j}dj, 
+ 
+ 
+ where the first equality is obtained via integration by parts, the inequality is \log(1/x)\geq 1-x , and the second equality rearranges the expression. Next, note that by definition of p and j_{2}^{*} 
+ 
+
+ 
+ (141) 
+ 
+ \frac{(\beta-1)j^{\beta-2}}{p}=6(m+n)(\beta-1)j^{\beta-2}=\frac{1}{2}j^{\beta-2}\times 12(\beta-1)(m+n)\leq\frac{1}{2}j^{\beta-1}\ \forall\ j\geq j_{2}^{*}. 
+ 
+ 
+ Using the previous two inequalities and rearranging, we obtain 
+ 
+
+ 
+ (142) 
+ 
+ \int_{j=j_{2}^{*}}^{\infty}j^{\beta-1}(1-p)^{j}dj\leq\frac{2(j_{2}^{*})^{\beta-1}(1-p)^{j_{2}^{*}}}{p}\leq\frac{(j_{2}^{*})^{\beta}}{(\beta-1)n}, 
+ 
+ 
+ where the second inequality uses 1/p=6(m+n)\leq j_{2}^{*}/(2(\beta-1)) and (1-p)^{j_{2}^{*}}\leq e^{-pj_{2}^{*}}\leq 1/n , both of which hold by definition of j_{2}^{*} and p . Plugging into ( 138 ) completes the proof.
+∎ 
+ 
+ 
+ 
+ Claim 8. 
+ 
+ j_{2}^{*}\leq j_{2} , where j_{2}^{*} is defined in ( 105 ) and 
+ 
+
+ 
+ (143) 
+ 
+ j_{2}=\max\{6(m+n)\max\{\log n,2(\beta-1)\},3(6^{\eta}+2)\}. 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ By definition of j_{2}^{*} , showing j_{2}^{*}\leq j_{2} requires us to show 
+ 
+
+ 
+ (144) 
+ 
+ j_{2}\geq 6(m+n)\max\{\log n,2(\beta-1)\},\quad j_{2}\geq 8,\quad j\geq\frac{3}{2}\lceil f(j)^{\eta}\rceil\ \forall\ j\geq j_{2}. 
+ 
+ 
+ The first inequality is immediate. The second holds since j_{2}>3(6+2)=24 (since \eta>1 ). For the third inequality, note that by definition of f(j) , \lceil x\rceil\leq x+1 , and convexity of x\mapsto x^{\eta} , we have 
+ 
+
+ 
+ (145) 
+ 
+ \lceil f(j)^{\eta}\rceil=\left\lceil\left\lceil 2+\frac{j^{1/\eta}}{2}\right\rceil^{\eta}\right\rceil\leq 1+\left(3+\frac{j^{1/\eta}}{2}\right)^{\eta}\leq 1+\frac{6^{\eta}}{2}+\frac{j}{2}. 
+ 
+ 
+ Therefore, for any j\geq j_{2}\geq 3(6^{\eta}+2) , 
+ 
+
+ 
+ (146) 
+ 
+ \frac{3}{2}\lceil f(j)^{\eta}\rceil\leq\frac{3(6^{\eta}+2)}{4}+\frac{3j}{4}\leq\frac{j}{4}+\frac{3j}{4}=j, 
+ 
+ 
+ so the third inequality in ( 144 ) holds.
+∎ 
+ 
+ 
+ 
+ 
+ 
+ Appendix C Proof of Theorem 1 
+
+ 
+ The expected regret bound is a simple consequence of the high probability result. To prove the latter, first define h(T)=\lfloor(\lceil T^{1/\beta}\rceil-1)/2\rfloor\ \forall\ T\in\mathbb{N} . Then h(T)\rightarrow\infty as T\rightarrow\infty , so for T large, 
+ 
+
+ 
+ (147) 
+ 
+ 2h(T)\geq h(T)+1\geq\frac{\lceil T^{1/\beta}\rceil-1}{2}\geq\frac{T^{1/\beta}}{e},\quad 2h(T)\leq\lceil T^{1/\beta}\rceil-1\leq T^{1/\beta}, 
+ 
+ 
+ which respectively imply 
+ 
+
+ 
+ (148) 
+ 
+ A_{2h(T)}=\lceil(2h(T))^{\beta}\rceil\geq(2h(T))^{\beta}\geq\frac{T}{e^{\beta}},\quad A_{2h(T)}=\lceil(2h(T))^{\beta}\rceil\leq T. 
+ 
+ 
+ Consequently, for any \delta>0 and all T\geq e^{\beta/\delta} , 
+ 
+
+ 
+ (149) 
+ 
+ \frac{R_{T}^{(i)}}{\log T}\geq\frac{R_{A_{2h(T)}}^{(i)}}{\log A_{2h(T)}}\left(1-\frac{\beta}{\log T}\right)\geq\frac{R_{A_{2h(T)}}^{(i)}}{\log A_{2h(T)}}(1-\delta). 
+ 
+ 
+ Thus, choosing \delta small enough that (1-\delta)^{2}\geq(1-\varepsilon) , it suffices to show 
+ 
+
+ 
+ (150) 
+ 
+ \lim_{T\rightarrow\infty}\mathbb{P}\left(\frac{R_{A_{2h(T)}}^{(i)}}{\log A_{2h(T)}} 
+ 
+ 
+ Equivalently (since h(T)\rightarrow\infty as T\rightarrow\infty ), we can show \mathbb{P}(\mathcal{G}_{j_{*}}^{(i)})\rightarrow 0 as j_{*}\rightarrow\infty , where 
+ 
+
+ 
+ (151) 
+ 
+ \mathcal{G}_{j_{*}}^{(i)}=\left\{\frac{R_{A_{2j_{*}}}^{(i)}}{\log A_{2j_{*}}} 
+ 
+ 
+ (In words, we have simply rewritten the result in terms of regret at the end of a phase, which will be more convenient.) Thus, our goal is to show \mathbb{P}(\mathcal{G}_{j_{*}}^{(i)})\rightarrow 0 . We first eliminate a trivial case where the best arm is not played sufficiently often. Namely, we define the event 
+ 
+
+ 
+ (152) 
+ 
+ \mathcal{E}_{j_{*}}^{(i)}=\{T_{1}^{(i)}(A_{j_{*}})>j_{*}^{\beta}/2\}\cap\cap_{j=j_{*}}^{2j_{*}}\cup_{t=1+A_{j-1}}^{A_{j}}\{I_{t}^{(i)}=1\}, 
+ 
+ 
+ and we show \mathcal{G}_{j_{*}}^{(i)}\setminus\mathcal{E}_{j_{*}}^{(i)}=\emptyset large j_{*} (so it will only remain to show \mathbb{P}(\mathcal{G}_{j_{*}}^{(i)},\mathcal{E}_{j_{*}}^{(i)})\rightarrow 0 ). First note 
+ 
+
+ 
+ (153) 
+ 
+ (\mathcal{E}_{j_{*}}^{(i)})^{C}=\{T_{1}^{(i)}(A_{j_{*}})\leq j_{*}^{\beta}/2\}\cup\cup_{j=j_{*}}^{2j_{*}}\{T_{1}^{(i)}(A_{j})=T_{1}^{(i)}(A_{j-1})\}. 
+ 
+ 
+ Now if T_{1}^{(i)}(A_{j_{*}})\leq j_{*}^{\beta}/2 , then the number of pulls of suboptimal arms by A_{2j_{*}} satisfies 
+ 
+
+ 
+ (154) 
+ 
+ \sum_{k=2}^{K}T_{k}^{(i)}(A_{2j_{*}})\geq\sum_{k=2}^{K}T_{k}^{(i)}(A_{j_{*}})=A_{j_{*}}-T_{1}^{(i)}(A_{j_{*}})=\lceil j_{*}^{\beta}\rceil-T_{1}^{(i)}(A_{j_{*}})\geq\frac{j_{*}^{\beta}}{2}\geq\frac{j_{*}^{\beta-1}}{2}, 
+ 
+ 
+ where the first inequality is monotonicity of T_{k}^{(i)}(\cdot) and the equalities are by definition. On the other hand, if T_{1}^{(i)}(A_{j})=T_{1}^{(i)}(A_{j-1}) for some j\in\{j_{*},\ldots,2j_{*}\} , then 
+ 
+
+ 
+ (155) 
+ 
+ \sum_{k=2}^{K}T_{k}^{(i)}(A_{2j_{*}})\geq A_{j}-A_{j-1}\geq j^{\beta}-(j-1)^{\beta}-1\geq\beta(j-1)^{\beta-1}-1\geq\frac{j_{*}^{\beta-1}}{2}, 
+ 
+ 
+ where we again used the definition of A_{j} , along with the mean value theorem, and where the final inequality holds for j_{*} large. Hence, by the basic regret decomposition R_{A_{2j_{*}}}^{(i)}=\sum_{k=2}^{K}\Delta_{k}T_{k}^{(i)}(A_{2j_{*}}) , 
+ 
+
+ 
+ (156) 
+ 
+ (\mathcal{E}_{j_{*}}^{(i)})^{C}\quad\Rightarrow\quad R_{A_{2j_{*}}}^{(i)}\geq\Delta_{2}\sum_{k=2}^{K}T_{k}^{(i)}(A_{2j_{*}})\geq\frac{\Delta_{2}j_{*}^{\beta-1}}{2}. 
+ 
+ 
+ We have shown that R_{A_{2j_{*}}}^{(i)} grows polynomially in j_{*} whenever \mathcal{E}_{j_{*}}^{(i)} fails (recall \beta>1 ). On the other hand, \mathcal{G}_{j_{*}}^{(i)} says R_{A_{2j_{*}}}^{(i)} is logarithmic in j_{*} . Thus, \mathcal{G}_{j_{*}}^{(i)}\setminus\mathcal{E}_{j_{*}}^{(i)} cannot occur for large j_{*} . 
+ 
+ 
+ The remainder (and the bulk) of the proof involves showing \mathbb{P}(\mathcal{G}_{j_{*}}^{(i)},\mathcal{E}_{j_{*}}^{(i)})\rightarrow 0 . We begin with a finite-time lower bound on the number of plays of any suboptimal arm when \mathcal{E}_{j_{*}}^{(i)} occurs. 
+ 
+ 
+ Lemma 5. 
+ 
+ Let \alpha>1 , \beta>1 , k\in\{2,\ldots,K\} , and j_{*}\in\mathbb{N}\cap[(2^{\beta}+1)^{1/\beta},\infty) . Assume that for some \zeta>0 and some \lambda\in(\sqrt{1/\alpha},1) , 
+ 
+
+ 
+ (157) 
+ 
+ \displaystyle\sqrt{\alpha\log A_{j_{*}}}\left(\frac{\Delta_{k}(1-\lambda)}{\sqrt{\zeta\alpha\log A_{2j_{*}}}}-\frac{2\sqrt{2}}{j_{*}^{\beta/2}}\right)\geq\Delta_{k}. 
+ 
+ 
+ Then for any i\in\{1,\ldots,n\} , 
+ 
+
+ 
+ (158) 
+ 
+ \mathbb{P}\left(T_{k}^{(i)}(A_{2j_{*}}) 
+ 
+ 
+ 
+ 
+ 
+ Proof. 
+ 
+ We first use the law of total probability and the union bound to write 
+ 
+
+ 
+ (159) 
+ 
+ \displaystyle\mathbb{P}\left(T_{k}^{(i)}(A_{2j_{*}}) 
+ \displaystyle\leq\sum_{j=j_{*}+1}^{2j_{*}}\mathbb{P}\left(T_{k}^{(i)}(A_{2j_{*}}) 
+ 
+ 
+ (160) 
+ 
+ 
+ \displaystyle\quad\quad+\mathbb{P}(k\notin S_{j}^{(i)}\ \forall\ j\in\{j_{*}+1,\ldots,2j_{*}\}). 
+ 
+ 
+ We will show ( 159 ) and ( 160 ) are bounded by the first and second summands in ( 158 ), respectively. We begin with the easier step: bounding ( 160 ). Note ( 160 ) is zero for sticky arms k\in\hat{S}^{(i)} , so we assume k\notin\hat{S}^{(i)} . Then conditioned on k\notin S_{2j_{*}-1}^{(i)} , k\in S_{2j_{*}}^{(i)}\Leftrightarrow R_{2j_{*}-1}^{(i)}=k (see Algorithm 1 ). Also, since the malicious agent is contacted with probability 1/n at each epoch and recommends uniformly random arms, R_{2j_{*}-1}^{(i)}=k with probability at least 1/(nK) . Therefore, 
+ 
+
+ 
+ (161) 
+ 
+ \mathbb{P}(k\in S_{2j_{*}}^{(i)}|k\notin S_{j}^{(i)}\ \forall\ k\in\{j_{*}+1,\ldots,2j_{*}-1\})\geq 1/(nK). 
+ 
+ 
+ Subtracting both sides from 1 and iterating yields the desired bound on ( 160 ): 
+ 
+
+ 
+ (162) 
+ 
+ \displaystyle\mathbb{P}(k\notin S_{j}^{(i)}\ \forall\ k\in\{j_{*}+1,\ldots,2j_{*}\})\leq\left(1-\frac{1}{nK}\right)^{j_{*}}. 
+ 
+ 
+ To bound ( 159 ), first let j\in\{j_{*}+1,\ldots,2j_{*}\} . Then by definition of \mathcal{E}_{j_{*}}^{(i)} and the union bound, 
+ 
+
+ 
+ (163) 
+ 
+ 
+ \displaystyle\mathbb{P}\left(T_{k}^{(i)}(A_{2j_{*}}) \frac{j_{*}^{\beta}}{2},T_{k}^{(i)}(A_{2j_{*}}) 
+ 
+ 
+ Next, for t\in\{1+A_{j-1},\ldots,A_{j}\} , we bound the t -th summand in ( 163 ) by modifying arguments from ( Auer
+et al., 2002 ) . First note k\in S_{j}^{(i)},I_{t}^{(i)}=1 implies (by Algorithm 1 ) 
+ 
+
+ 
+ (164) 
+ 
+ \bar{X}_{k,T_{k}^{(i)}(t-1)}^{(i)}+c_{t,T_{k}^{(i)}(t-1)}\leq\bar{X}_{1,T_{1}^{(i)}(t-1)}^{(i)}+c_{t,T_{1}^{(i)}(t-1)}, 
+ 
+ 
+ where \bar{X}_{k,s}^{(i)} is the average of s independent \text{Bernoulli}(\mu_{k}) random variables and c_{t,s}=\sqrt{\alpha\log(t)/s} . This further implies (by the bounds on T_{1}^{(i)}(A_{j_{*}}),T_{k}^{(i)}(A_{2j_{*}}) in ( 163 ), since T_{1}^{(i)}(\cdot),T_{k}^{(i)}(\cdot) are increasing functions, and since A_{j_{*}} 
+ 
+
+ 
+ (165) 
+ 
+ \min_{\sigma_{k}\in\{1,\ldots,\lfloor\zeta\alpha\log(A_{2j_{*}})/\Delta_{k}^{2}\rfloor\}}\bar{X}_{k,\sigma_{k}}^{(i)}+c_{t,\sigma_{k}}\leq\max_{\sigma_{1}\in\{\lceil j_{*}^{\beta}/2\rceil,\ldots,t\}}\bar{X}_{1,\sigma_{1}}^{(i)}+c_{t,\sigma_{1}}. 
+ 
+ 
+ Thus, with another union bound, we can bound the t -th summand in ( 163 ) by 
+ 
+
+ 
+ (166) 
+ 
+ 
+ \displaystyle\mathbb{P}\left(T_{1}^{(i)}(A_{j_{*}})>\frac{j_{*}^{\beta}}{2},T_{k}^{(i)}(A_{2j_{*}}) 
+ 
+ 
+ Fixing \sigma_{k},\sigma_{1} as in the double summation, we claim \bar{X}_{k,\sigma_{k}}^{(i)}+c_{t,\sigma_{k}}\leq\bar{X}_{1,\sigma_{1}}^{(i)}+c_{t,\sigma_{1}} implies that \bar{X}_{k,\sigma_{k}}^{(i)}\leq\mu_{k}-\lambda c_{t,\sigma_{k}} or \bar{X}_{1,\sigma_{1}}^{(i)}\geq\mu_{1}+c_{t,\sigma_{1}} . Indeed, if both inequalities fail, then 
+ 
+
+ 
+ (167) 
+ 
+ \displaystyle\bar{X}_{k,\sigma_{k}}^{(i)}+c_{t,\sigma_{k}} 
+ \displaystyle>\mu_{k}+(1-\lambda)c_{t,\sigma_{k}}=\mu_{1}-\Delta_{k}+(1-\lambda)c_{t,\sigma_{k}}>\bar{X}_{1,\sigma_{1}}^{(i)}-c_{t,\sigma_{1}}-\Delta_{k}+(1-\lambda)c_{t,\sigma_{k}}\geq\bar{X}_{1,\sigma_{1}}^{(i)}+c_{t,\sigma_{1}}, 
+ 
+ 
+ which is a contradiction; here the equality is by definition of \Delta_{k} and the final inequality holds since 
+ 
+
+ 
+ (168) 
+ 
+ \displaystyle(1-\lambda)c_{t,\sigma_{k}}-2c_{t,\sigma_{1}} 
+ \displaystyle=\sqrt{\alpha\log t}\left(\frac{1-\lambda}{\sqrt{\sigma_{k}}}-\frac{2}{\sqrt{\sigma_{1}}}\right)\geq\sqrt{\alpha\log A_{j_{*}}}\left(\frac{\Delta_{k}(1-\lambda)}{\sqrt{\zeta\alpha\log A_{2j_{*}}}}-\frac{2\sqrt{2}}{j_{*}^{\beta/2}}\right)\geq\Delta_{k}, 
+ 
+ 
+ where the first inequality uses t\geq A_{j_{*}},\sigma_{k}\leq\zeta\alpha\log(A_{2l_{*}})/\Delta_{k}^{2},\sigma_{1}\geq j_{*}^{\beta}/2 and the second uses ( 157 ). From this implication, we can write 
+ 
+
+ 
+ (169) 
+ 
+ \displaystyle\mathbb{P}(\bar{X}_{k,\sigma_{k}}^{(i)}+c_{t,\sigma_{k}}\leq\bar{X}_{1,\sigma_{1}}^{(i)}+c_{t,\sigma_{1}}) 
+ \displaystyle\leq\mathbb{P}(\bar{X}_{k,\sigma_{k}}^{(i)}\leq\mu_{k}-\lambda c_{t,\sigma_{k}})+\mathbb{P}(\bar{X}_{1,\sigma_{1}}^{(i)}\geq\mu_{1}+c_{t,\sigma_{1}})e^{-2\alpha\lambda^{2}\log t}+e^{-2\alpha\log t} 
+ 
+ 
+ where the second inequality uses a standard Chernoff bound and the third uses \lambda 163 ) and ( 166 ), then substituting into ( 159 ), we have shown 
+ 
+
+ 
+ (170) 
+ 
+ 
+ \displaystyle\sum_{j=j_{*}+1}^{2j_{*}}\mathbb{P}\left(T_{k}^{(i)}(A_{2j_{*}}) 
+ 
+ 
+ We also observe that by assumption j_{*}\geq(2^{\beta}+1)^{1/\beta} , and since j_{*},\beta>1 , 
+ 
+
+ 
+ (171) 
+ 
+ \lceil(2j_{*})^{\beta}\rceil 
+ 
+ 
+ Finally, we use A_{j_{*}}\geq j_{*}^{\beta} , \lambda>\sqrt{1/\alpha} , and an integral approximation to write 
+ 
+
+ 
+ (172) 
+ 
+ \sum_{t=1+A_{j_{*}}}^{\infty}t^{1-2\alpha\lambda^{2}}\leq\int_{t=j_{*}^{\beta}}^{\infty}t^{1-2\alpha\lambda^{2}}dt=\frac{j_{*}^{2\beta(1-\alpha\lambda^{2})}}{2(\alpha\lambda^{2}-1)}. 
+ 
+ 
+ Combining the previous three inequalities yields the desired bound on ( 159 ).
+∎ 
+ 
+ 
+ 
+ We finish the proof of the theorem by showing \mathbb{P}(\mathcal{G}_{j_{*}}^{(i)},\mathcal{E}_{j_{*}}^{(i)})\rightarrow 0 . Note by the regret decomposition R_{A_{2j_{*}}}^{(i)}=\sum_{k=2}^{K}\Delta_{k}T_{k}^{(i)}(A_{2j_{*}}) and the union bound, it suffices to show that for any k , 
+ 
+
+ 
+ (173) 
+ 
+ \lim_{j_{*}\rightarrow\infty}\mathbb{P}\left(\frac{T_{k}^{(i)}(A_{2j_{*}})}{\log A_{2j_{*}}} 
+ 
+ 
+ We prove ( 173 ) using Lemma 5 . First, we define \lambda=\lambda(j_{*}) by 
+ 
+
+ 
+ (174) 
+ 
+ \lambda(j_{*})=\sqrt{\frac{1+1/\sqrt{\log j_{*}}}{\alpha}}. 
+ 
+ 
+ We choose \zeta=\zeta(j_{*}) such that ( 157 ) holds with equality, i.e., 
+ 
+
+ 
+ (175) 
+ 
+ \sqrt{\alpha\log A_{j_{*}}}\left(\frac{\Delta_{k}(1-\lambda(j_{*}))}{\sqrt{\zeta(j_{*})\alpha\log A_{2j_{*}}}}-\frac{2\sqrt{2}}{j_{*}^{\beta/2}}\right)=\Delta_{k}. 
+ 
+ 
+ We claim (and will return to prove) \zeta(j_{*})\rightarrow(1-1/\sqrt{\alpha})^{2} as j_{*}\rightarrow\infty . Assuming this holds, we have \zeta(j_{*})>(1-\delta)(1-1/\sqrt{\alpha})^{2}>0 for all large j_{*} . Also, it is clear that 1/\sqrt{\alpha} 5 hold for large j_{*} , so for such j_{*} , 
+ 
+
+ 
+ (176) 
+ 
+ \mathbb{P}\left(\frac{T_{k}^{(i)}(A_{2j_{*}})}{\log A_{2j_{*}}} 
+ 
+ 
+ Note that by monotonicity and \zeta(j_{*})>(1-\delta)(1-1/\sqrt{\alpha})^{2} for large j_{*} , ( 173 ) will follow if we can show the right side of ( 176 ) vanishes. Clearly (1-1/(nK))^{j_{*}}\rightarrow 0 . For the first term in ( 176 ), note 
+ 
+
+ 
+ (177) 
+ 
+ \displaystyle\frac{\log(j_{*})j_{*}^{2\beta(1-\alpha\lambda(j_{*})^{2})}}{\alpha\lambda(j_{*})^{2}-1}=(\log j_{*})^{3/2}j_{*}^{-2\beta/\sqrt{\log j_{*}}}=e^{\frac{3}{2}\log(\log j_{*})-2\beta\sqrt{\log j_{*}}}\xrightarrow[j_{*}\rightarrow\infty]{}0, 
+ 
+ 
+ so since \alpha,\beta,\Delta_{k} are constants and \lim_{j_{*}\rightarrow\infty}\zeta(j_{*}) 176 ) vanishes as well. 
+ 
+ 
+ It remains to show \zeta(j_{*})\rightarrow(1-1/\sqrt{\alpha})^{2} . By definition A_{j_{*}}=\lceil j_{*}^{\beta}\rceil , one can verify 
+ 
+
+ 
+ (178) 
+ 
+ \lim_{j_{*}\rightarrow\infty}\frac{\log A_{j_{*}}}{\log A_{2j_{*}}}=1,\quad\lim_{j_{*}\rightarrow\infty}\frac{\log A_{j_{*}}}{j_{*}^{\beta}}=0, 
+ 
+ 
+ which, combined with ( 174 ) and ( 175 ), implies 
+ 
+
+ 
+ (179) 
+ 
+ 1=\lim_{j_{*}\rightarrow\infty}\frac{1-\lambda(j_{*})}{\sqrt{\zeta(j_{*})}}=\lim_{j_{*}\rightarrow\infty}\frac{1-\sqrt{\frac{1+1/\sqrt{\log j_{*}}}{\alpha}}}{\sqrt{\zeta(j_{*})}}, 
+ 
+ 
+ so \zeta(j_{*})\rightarrow(1-1/\sqrt{\alpha})^{2} indeed holds. 
+ 
+ 
+ 
+ Appendix D Experimental details 
+
+ 
+ In Table 1 , we show the average regret \frac{1}{n}\sum_{i=1}^{n}R_{T}^{(i)} (reported as mean \pm standard deviation) at horizon T=10^{5} relative to the algorithm from ( Chawla et al., 2020b ) for various values of m , K , and \eta . We use the same synthetic and real datasets, define the same uniform and omniscient malicious agent strategies, and choose n=25,\beta=2,\alpha=4,S=\lceil K/n\rceil as in Section 6 . 
+ 
+ 
+ Table 1. Average regret at T=10^{5} relative to the algorithm from ( Chawla et al., 2020b ) 
+ 
+ 
+ 
+ 
+ Synthetic data 
+ Real data 
+ 
+ 
+ m 
+ K 
+ \eta 
+ Uniform 
+ Omniscient 
+ Uniform 
+ Omniscient 
+ 
+ 
+ 10 
+ 75 
+ 2 
+ 0.450\pm 0.160 
+ 0.413\pm 0.052 
+ 0.582\pm 0.157 
+ 0.543\pm 0.136 
+ 
+ 
+ 10 
+ 75 
+ 3 
+ 0.415\pm 0.172 
+ 0.415\pm 0.046 
+ 0.578\pm 0.168 
+ 0.567\pm 0.204 
+ 
+ 
+ 10 
+ 75 
+ 4 
+ 0.435\pm 0.124 
+ 0.395\pm 0.034 
+ 0.525\pm 0.143 
+ 0.593\pm 0.227 
+ 
+ 
+ 10 
+ 100 
+ 2 
+ 0.413\pm 0.086 
+ 0.401\pm 0.076 
+ 0.560\pm 0.142 
+ 0.483\pm 0.080 
+ 
+ 
+ 10 
+ 100 
+ 3 
+ 0.464\pm 0.235 
+ 0.412\pm 0.114 
+ 0.564\pm 0.143 
+ 0.504\pm 0.108 
+ 
+ 
+ 10 
+ 100 
+ 4 
+ 0.418\pm 0.107 
+ 0.404\pm 0.070 
+ 0.535\pm 0.139 
+ 0.521\pm 0.119 
+ 
+ 
+ 15 
+ 75 
+ 2 
+ 0.418\pm 0.088 
+ 0.433\pm 0.047 
+ 0.547\pm 0.119 
+ 0.603\pm 0.217 
+ 
+ 
+ 15 
+ 75 
+ 3 
+ 0.411\pm 0.081 
+ 0.439\pm 0.054 
+ 0.551\pm 0.138 
+ 0.651\pm 0.229 
+ 
+ 
+ 15 
+ 75 
+ 4 
+ 0.423\pm 0.105 
+ 0.451\pm 0.062 
+ 0.557\pm 0.109 
+ 0.645\pm 0.220 
+ 
+ 
+ 15 
+ 100 
+ 2 
+ 0.430\pm 0.113 
+ 0.408\pm 0.040 
+ 0.507\pm 0.120 
+ 0.501\pm 0.058 
+ 
+ 
+ 15 
+ 100 
+ 3 
+ 0.429\pm 0.133 
+ 0.414\pm 0.058 
+ 0.494\pm 0.120 
+ 0.514\pm 0.089 
+ 
+ 
+ 15 
+ 100 
+ 4 
+ 0.420\pm 0.085 
+ 0.412\pm 0.058 
+ 0.514\pm 0.110 
+ 0.511\pm 0.078 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Experimental support, please
+ view the build logs 
+ for errors. Generated by
+ 
+ 
+ L
+ A 
+ T
+ E 
+ 
+ xml 
+ 
+ .
+ 
+ 
+ Instructions for reporting errors 
+ We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+ support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+ methods listed below: 
+ 
+ Click the "Report Issue" ( 
+ 
+ ) button, located in the page header. 
+ 
+ Tip: You can select the relevant text first, to include it in your report. 
+ Our team has already identified the following issues . We appreciate your time reviewing and reporting rendering errors we
+ may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+ should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+ all. 
+ Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a list of packages that need conversion , and welcome developer contributions . 
+ 
+ 
+ 
+ 
+ 
+ We gratefully acknowledge support from
+ our major funders ,
+ member institutions , ,
+ and all contributors.
+ 
+ 
+ About 
+ · 
+ Help 
+ · 
+ Contact 
+ · 
+ Subscribe 
+ · 
+ Copyright 
+ · 
+ Privacy 
+ · 
+ Accessibility 
+ · 
+ Operational Status (opens in new tab) 
+ 
+ 
+
+ 
+ Major funding support from 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
