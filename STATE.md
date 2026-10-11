@@ -35,3 +35,15 @@ Plan: `REPLICATION_PLAN.md`. Contract for all phases after Phase 1: `specs/paper
 - Figures 1–2 are raster in the PDF: no numeric axis data extractable → §11 records the qualitative landmarks (ratio <0.5, oracle≈proposed≪no_comm, S-curve, best-arm discard at T≈6e4 / 4e4).
 - Open risk carried forward: MovieLens cohort + arm selection + softImpute rank/λ are **not in the paper** (§12) — Phase 7 must record ours and run a second cohort if time allows.
 - **Next action:** Phase 2 — `src/mabamab/engine.py` + `experiments/bench_engine.py` (≥1M pulls/s gate), then Phase 3 gosine parity.
+
+### Phase 2 — engine core — PASS (2026-10-11)
+
+- `src/mabamab/{ucb,sticky,engine}.py` + `tests/test_engine.py` (16 tests total, all green: `.venv/Scripts/python -m pytest`).
+- `engine.run_gossip` = one numba `@njit(cache=True)` kernel: Algorithm 1 lines 1–6, 8–16 with Algorithm 2 `Get-Rec` over honest recommenders (`m = 0`, every `P_j` empty). Line 7 (Update-Blocklists) is the marked no-op seam.
+- Conventions wired: C1 (`T_k = 0` ⇒ index +inf, unplayed arms first), C2 (`A_0 = 0`, phase counts instead of `T_k(A_j) − T_k(A_{j−1})`), C3 (active list kept ascending + strict `>` ⇒ lowest-index tie-breaks, incl. line 12 `argmax{U,L}`), C4 (all `B_j` computed before any recommendation is read), C5/C6 (`sticky.py`), C10 (curve = mean over honest agents), C16 (Bernoulli).
+- RNG: splitmix64 per agent, 64-bit seeds from `np.random.SeedSequence(base_seed).spawn(n)` (`agent_seeds`) ⇒ per-(trial,agent) reproducible streams; instance arrays are copied before the kernel mutates them, so paired algorithms can share one instance (C11).
+- Throughput gate: `experiments/bench_engine.py` → **25.0M pulls/s**, `1.25e8` pulls (T=1e5 × n=25 × 50 trials) in **5.0 s**; gate was 1e6/s. `results/bench_engine.csv`, `results/metrics.json` (`engine_throughput`).
+- Same run, sanity only (not a fidelity claim): mean honest-agent regret `905.6 ± 72.6` for gossip with `m=0, K=100, n=25, S=4, α=4, β=2`.
+- numba 0.68 gotchas for later phases: `int(uint64)` inside `@njit` yields float64 (use `np.int64(...)`); `SeedSequence.generate_stream` does not exist (use `spawn` + `generate_state`).
+- Not implemented (deferred by plan): Algorithm 3 blocking, malicious agents + uniform/omniscient strategies, `oracle` and `no_comm` baselines.
+- **Next action:** Phase 3 — `experiments/p3_gossip.py`, compare `m=0` gossip regret against `gosine` `Synch.py` on a shared instance and check the `(K/n)·log T/Δ` slope.
