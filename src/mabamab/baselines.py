@@ -67,17 +67,17 @@ def run_trial_no_comm(mu, alpha, n, T, checkpoints, base_seed):
 
 
 def run_trial_algo(name, mu, sticky, active, U, L, alpha, beta, T, checkpoints,
-                   base_seed, m=0, eta=0.0, strategy=0, diag=None):
+                   base_seed, m=0, eta=0.0, strategy=0, diag=None, dropped=None):
     """One trial of one compared algorithm (spec §8) on one shared instance."""
     if name not in ALGORITHMS:
         raise ValueError(f"unknown algorithm {name!r}, expected one of {ALGORITHMS}")
-    if name == "no_comm":
+    if name == "no_comm":  # no active set, so `dropped` stays untouched
         return run_trial_no_comm(mu, alpha, sticky.shape[0], T, checkpoints, base_seed)
     if name == "no_comm_alg1":  # C15b: Algorithm 1 minus the Get-Rec path
         return run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
-                         m=m, eta=0.0, isolated=True, diag=diag)
+                         m=m, eta=0.0, isolated=True, diag=diag, dropped=dropped)
     if name != "gossip":
         assert eta > 1.0, f"{name} needs the Algorithm 3 parameter eta > 1"
     return run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
                      m=m, eta=0.0 if name == "gossip" else eta, strategy=strategy,
-                     oracle=(name == "oracle"), diag=diag)
+                     oracle=(name == "oracle"), diag=diag, dropped=dropped)

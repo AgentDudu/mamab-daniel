@@ -186,9 +186,9 @@ Tolerances (plan §4): match if `|ours − paper| ≤ 0.10`; within-noise if ins
 ## 11. Qualitative landmarks (Figures 1–2; §6.1 lines 808, 812; §6.2 lines 821–822)
 
 1. `proposed` ≈ `oracle` ≪ `no_comm`; `gossip` ≫ `no_comm`. **Deviation (2026-10-12, `experiments/baseline_probe.py`, `results/baseline_probe_*.csv`):** we get `proposed` (2403) ≪ `no_comm` (10150) ✓ but `gossip` (7667) < `no_comm` at `K=100 n=25 S=4 m=10 η=2 T=1e5`, i.e. the second half of the landmark does not hold. Cause is the C15a constant, not the engine: `no_comm` regret is ~linear in `α` (2868 @α=1, 5467 @α=2, 10150 @α=4, 17461 @α=8), so the paper's ordering needs `α ≲ 2`. C15a stays frozen at `α = 4` (no post-hoc tuning) and the landmark is reported as a mismatch. The other reading, C15b, is ruled out by measurement: isolated Algorithm 1 has log-log slope **0.987** (23789 @T=1e5, 235092 @T=1e6) — an isolated sticky-set agent discards the best arm permanently, so its regret is linear and cannot be the paper's sublinear no-comm curve.
-2. `proposed` < 0.5 × `gossip` regret (this is the Table 1 ratio ≈ 0.4–0.6).
-3. "S-curve" for `gossip` under the **omniscient** strategy.
-4. Honest agents **discard the best arm** at `T ≈ 6e4` (Fig 1, synthetic) and `T ≈ 4e4` (Fig 2, real) → regret bump near those `T`.
+2. `proposed` < 0.5 × `gossip` regret (this is the Table 1 ratio ≈ 0.4–0.6). **Measured 2026-10-12 (`experiments/p5_fig1.py`, 50 paired trials, `results/fig1.csv`): 0.421 ± 0.214 uniform / 0.290 ± 0.095 omniscient — holds; paper Table 1 for the same config: 0.413 / 0.401.**
+3. "S-curve" for `gossip` under the **omniscient** strategy. **Confirmed 2026-10-12: gossip regret slope 104 → 3761 (peak at T = 56234) → 2513; uniform gossip slope is still rising at T = 1e5.**
+4. Honest agents **discard the best arm** at `T ≈ 6e4` (Fig 1, synthetic) and `T ≈ 4e4` (Fig 2, real) → regret bump near those `T`. **Deviation (2026-10-12):** the discards are not localised — `run_trial(..., dropped=)` counts arm-1 discard *events*, and the gossip rate is ≈ 0.07–0.08 per agent per epoch from `T ≈ 5e2` to `T ≈ 3e4` (16–17 per agent by `T = 1e5`). The regret bump does reproduce: the gossip slope peaks at `T ≈ 5.6e4`. Algorithm 3 removes the discards (proposed rate → ~0 after `T ≈ 1.3e4`), which is the mechanism the paper attributes to blocking.
 5. Uniform vs omniscient results "roughly similar" except the S-curve/bump.
 
 ## 12. Real-data pipeline (§6.2 lines 816–821)
