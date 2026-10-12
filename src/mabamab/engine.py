@@ -8,7 +8,8 @@ One numba kernel covers the four compared algorithms (spec §8):
 | `gossip` (Chawla) | `eta = 0` → Algorithm 1 line 7 is a no-op, every `P_j` stays empty |
 | `proposed` | `eta > 1` → Algorithm 3 blocking |
 | `oracle` | `eta > 1` plus malicious agents permanently blocklisted (C14) |
-| `no_comm` | not here — see `baselines.run_no_comm` (C15) |
+| `no_comm` (plain UCB) | not here — see `baselines.run_no_comm` (C15a) |
+| `no_comm_alg1` | `isolated = True`: Algorithm 1 with the `Get-Rec` path removed — sticky sets, epochs and active-set updates stay, `R_j := B_j` (C15b) |
 
 Conventions implemented (specs/paper_spec.md): C1 unplayed arms have index +inf,
 C2 `A_0 = 0`, C3 lowest-arm-index tie-breaks, C4 synchronous epochs (every agent
@@ -43,13 +44,27 @@ def _rebuild_active(sticky_row, active_row, U, L):
 
 
 @njit(cache=True)
-def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, sticky, active, U, L,
+def _apply_rec(i, rec, B, phase, U, L, sticky, active):
+    """Algorithm 1 lines 9-14: keep the active set, else replace `L` (and maybe `U`)."""
+    if not in_active(active[i], rec):  # line 9
+        du = phase[i, U[i]]
+        dl = phase[i, L[i]]
+        if dl > du or (dl == du and L[i] < U[i]):  # line 12, C3
+            U[i] = L[i]
+        L[i] = rec  # line 13
+        _rebuild_active(sticky[i], active[i], U[i], L[i])  # line 14
+
+
+@njit(cache=True)
+def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, isolated, sticky, active, U, L,
              rng_state, T, checkpoints, curve, agent_regret, diag):
     """Simulate `T` pulls for `n` honest agents and `m` malicious recommenders.
 
     Writes the per-checkpoint mean honest-agent regret into `curve` and the
     per-agent final regret into `agent_regret`. `active`, `U`, `L` are mutated.
     `diag` counts `[no-recommender epochs (C7), malicious recommendations]`.
+    `isolated` removes the communication path (C15b): no blocklists, no recommender
+    draw, `R_j := B_j`, so `m` has no effect on the run.
     """
     n, K = sticky.shape
     total = n + m
@@ -86,6 +101,9 @@ def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, sticky, active, U, L,
             for i in range(n):  # line 6, computed for everyone first (C4)
                 B[i] = phase_argmax(phase[i], active[i])
             for i in range(n):
+                if isolated:  # C15b: no Get-Rec, no Algorithm 3
+                    _apply_rec(i, B[i], B, phase, U, L, sticky, active)
+                    continue
                 update_blocklist(d[i], j, eta, j_max, prev_h[i], prev_r[i], B[i])  # line 7
                 rng_state[i], z = next_u64(rng_state[i])
                 h = pick_recommender(d[i], j, i, total, z)  # Alg. 2 line 1
@@ -102,13 +120,7 @@ def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, sticky, active, U, L,
                         rng_state[i], rec = recommend_uniform(rng_state[i], K)
                 prev_h[i] = h
                 prev_r[i] = rec
-                if not in_active(active[i], rec):  # line 9
-                    du = phase[i, U[i]]
-                    dl = phase[i, L[i]]
-                    if dl > du or (dl == du and L[i] < U[i]):  # line 12, C3
-                        U[i] = L[i]
-                    L[i] = rec  # line 13
-                    _rebuild_active(sticky[i], active[i], U[i], L[i])  # line 14
+                _apply_rec(i, rec, B, phase, U, L, sticky, active)
             for i in range(n):
                 for k in range(K):
                     phase[i, k] = 0
@@ -158,7 +170,7 @@ def make_instance(K: int, n: int, S: int, rng: np.random.Generator):
 
 
 def run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
-              m=0, eta=0.0, strategy=0, oracle=False, diag=None):
+              m=0, eta=0.0, strategy=0, oracle=False, isolated=False, diag=None):
     """Run one Algorithm-1 trial on one instance; the instance arrays are left
     untouched so paired algorithms can share them (spec C11)."""
     n = sticky.shape[0]
@@ -174,6 +186,7 @@ def run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
         int(m),
         int(strategy),
         bool(oracle),
+        bool(isolated),
         np.ascontiguousarray(sticky),
         np.ascontiguousarray(active, dtype=np.int32).copy(),
         np.ascontiguousarray(U, dtype=np.int32).copy(),

@@ -96,7 +96,7 @@ def test_run_state_keeps_active_set_sticky_plus_ul():
     active, U, L = active.copy(), U.copy(), L.copy()
     curve = np.zeros(1)
     agent_regret = np.zeros(n)
-    run_alg1(mu, ALPHA, BETA, 0.0, 0, 0, False, sticky, active, U, L,
+    run_alg1(mu, ALPHA, BETA, 0.0, 0, 0, False, False, sticky, active, U, L,
              agent_seeds(1, n), 5000, np.array([5000], dtype=np.int64), curve,
              agent_regret, np.zeros(2, dtype=np.int64))
     for i in range(n):

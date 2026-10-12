@@ -156,8 +156,8 @@ Phases 2→4 are strictly sequential. 5 and 6 can run in parallel once 4 passes.
 - Blocking rule exactly as Alg 3 (note: it compares `B_j^(i)` to `R_{j-1}^(i)`, i.e. the block decision at epoch `j` punishes the recommender chosen at epoch `j−1`).
 - Malicious strategies: uniform; omniscient (needs the *receiving* honest agent's per-arm counts — that is the "private information" the name refers to).
 - Oracle: honest agents permanently exclude `{n+1..n+m}` from `Get-Rec` sampling.
-- No-comm: each honest agent runs UCB(α) over all `K` arms (document this choice; paper does not specify).
-- Theorem-1 smoke test: `m=1`, uniform strategy, `K=25`, `T=1e4` → gossip regret ≈ no-comm regret (ratio within ~1.3).
+- No-comm: each honest agent runs UCB(α) over all `K` arms (document this choice; paper does not specify). **Frozen as C15a with the same α = 4**; the alternative reading (Algorithm 1 minus `Get-Rec`) was implemented as `no_comm_alg1` and rejected — measured linear regret, spec §11.1.
+- Theorem-1 smoke test: `m=1`, uniform strategy, `K=25`, `T` swept 1e4→1e6. Gate (restated 2026-10-12 after measurement): `gossip_regret(T) / [α(1−1/√α)² Σ_{k≥2} 1/Δ_k · log T]` stays **O(1) and non-decreasing** in `T` — that is what Theorem 1 states (a liminf lower bound). The original gate (gossip/no-comm ratio within ~1.3 at `T=1e4`) is unattainable under C15a: measured 0.428 @1e4 → 0.793 @1e6, crossing only near `T ≈ 5e6`.
 
 ### Phase 5–6 — synthetic figures/table
 - Regret definition: per-agent cumulative regret `E[R^(i)(T)] = Σ_t Σ_{k≠1} Δ_k · 1{I_t^(i)=k}`, averaged over honest agents; report mean ± std across the 50 trials.
