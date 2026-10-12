@@ -1,6 +1,16 @@
-"""Sticky sets and the initial active set (Algorithm 1 line 2; spec C5, C6)."""
+"""Sticky sets, the initial active set (Algorithm 1 line 2; spec C5, C6) and active-set membership."""
 
 import numpy as np
+from numba import njit
+
+
+@njit(cache=True)
+def in_active(active_row, arm):
+    """Is `arm` in the agent's active set (`active_row` is ascending, size S+2)?"""
+    for a in range(active_row.shape[0]):
+        if active_row[a] == arm:
+            return True
+    return False
 
 
 def sample_sticky_sets(K: int, n: int, S: int, rng: np.random.Generator) -> np.ndarray:

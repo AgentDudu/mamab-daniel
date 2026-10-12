@@ -118,5 +118,100 @@
       "port_se": 22.727667028826048,
       "z": 1.822037004051331
     }
+  },
+  "blocking": {
+    "instance_seed": 20260101,
+    "alpha": 4.0,
+    "beta": 2.0,
+    "eta": 2.0,
+    "theorem1": {
+      "K": 25,
+      "n": 25,
+      "S": 1,
+      "m": 1,
+      "strategy": "uniform",
+      "trials": 25,
+      "growth": [
+        {
+          "T": 1250,
+          "no_comm": 394.8033668434433,
+          "no_comm_se": 6.023571024334578,
+          "gossip": 145.6946524422109,
+          "gossip_se": 3.5832462780985717
+        },
+        {
+          "T": 2500,
+          "no_comm": 655.3211482444023,
+          "no_comm_se": 6.924354395077055,
+          "gossip": 243.03194295377102,
+          "gossip_se": 5.29826020722277
+        },
+        {
+          "T": 5000,
+          "no_comm": 1007.9653268236635,
+          "no_comm_se": 5.107963398880781,
+          "gossip": 406.7297756963583,
+          "gossip_se": 9.629794760942008
+        },
+        {
+          "T": 10000,
+          "no_comm": 1413.6027346710648,
+          "no_comm_se": 11.550285714839049,
+          "gossip": 609.6537323766541,
+          "gossip_se": 17.98893998063312
+        },
+        {
+          "T": 20000,
+          "no_comm": 1820.7955107206972,
+          "no_comm_se": 24.66899004048367,
+          "gossip": 869.5986545148527,
+          "gossip_se": 26.16559014386744
+        }
+      ],
+      "log_log_slope": {
+        "no_comm": 0.551982815551276,
+        "gossip": 0.6481647678993615
+      },
+      "gossip_over_no_comm": 0.4775927057128194,
+      "note": "ratio < 1 because the C15 no-comm baseline explores all K arms while Algorithm 1 agents keep sticky + {U,L} active sets; Theorem 1 only bounds gossip regret from above."
+    },
+    "sanity": {
+      "K": 100,
+      "n": 25,
+      "S": 4,
+      "m": 10,
+      "strategy": "omniscient",
+      "T": 100000,
+      "trials": 10,
+      "algorithms": {
+        "proposed": {
+          "mean_regret": 2403.4009753666564,
+          "se": 294.6037159890706,
+          "c7_epochs": 3601,
+          "malicious_rec_epochs": 6899
+        },
+        "gossip": {
+          "mean_regret": 7667.260263053375,
+          "se": 129.73040258734844,
+          "c7_epochs": 0,
+          "malicious_rec_epochs": 23344
+        },
+        "oracle": {
+          "mean_regret": 834.8353131395377,
+          "se": 31.803594033625064,
+          "c7_epochs": 6,
+          "malicious_rec_epochs": 0
+        },
+        "no_comm": {
+          "mean_regret": 10150.147077262396,
+          "se": 137.3860833606131,
+          "c7_epochs": 0,
+          "malicious_rec_epochs": 0
+        }
+      },
+      "proposed_over_gossip": 0.3134628136921411,
+      "oracle_over_gossip": 0.10888313223986956,
+      "gossip_over_no_comm": 0.7553841540118172
+    }
   }
 }
