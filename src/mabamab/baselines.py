@@ -16,7 +16,7 @@ from .engine import agent_seeds, run_trial
 from .rng import uniform
 from .ucb import ucb_argmax
 
-ALGORITHMS = ("proposed", "gossip", "oracle", "no_comm")
+ALGORITHMS = ("proposed", "gossip", "oracle", "no_comm", "no_comm_alg1")
 
 
 @njit(cache=True)
@@ -73,6 +73,9 @@ def run_trial_algo(name, mu, sticky, active, U, L, alpha, beta, T, checkpoints,
         raise ValueError(f"unknown algorithm {name!r}, expected one of {ALGORITHMS}")
     if name == "no_comm":
         return run_trial_no_comm(mu, alpha, sticky.shape[0], T, checkpoints, base_seed)
+    if name == "no_comm_alg1":  # C15b: Algorithm 1 minus the Get-Rec path
+        return run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
+                         m=m, eta=0.0, isolated=True, diag=diag)
     if name != "gossip":
         assert eta > 1.0, f"{name} needs the Algorithm 3 parameter eta > 1"
     return run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,

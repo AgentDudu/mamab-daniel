@@ -173,3 +173,14 @@ def test_no_comm_regret_is_sublinear_and_paired():
     big = run_trial_no_comm(mu, ALPHA, 10, 40000, np.array([40000], np.int64), 5)[1].mean()
     assert 0 < small < big < 2 * small  # ~log T growth
     assert np.array_equal(small, run_trial_no_comm(mu, ALPHA, 10, 10000, np.array([10000], np.int64), 5)[1].mean())
+
+
+def test_no_comm_alg1_is_the_isolated_algorithm_1():
+    """C15b: Get-Rec removed -> malicious agents cannot influence the run."""
+    mu, sticky, active, U, L = _instance(K=25, n=10, S=3)
+    ck = np.array([3000], np.int64)
+    a = run_trial(mu, sticky, active, U, L, ALPHA, BETA, 3000, ck, 17, m=0, isolated=True)[1]
+    b = run_trial(mu, sticky, active, U, L, ALPHA, BETA, 3000, ck, 17,
+                  m=7, strategy=STRATEGY_OMNISCIENT, isolated=True)[1]
+    assert np.array_equal(a, b)
+    assert a.mean() > run_trial(mu, sticky, active, U, L, ALPHA, BETA, 3000, ck, 17, m=0)[1].mean()
