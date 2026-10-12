@@ -5,25 +5,24 @@ import time
 import numpy as np
 import pytest
 
+from mabamab.blocking import ceil_pow
 from mabamab.engine import (
-    _epoch_start,
-    _in_active,
     _rebuild_active,
     agent_seeds,
     make_instance,
-    run_gossip,
+    run_alg1,
     run_trial,
 )
-from mabamab.sticky import sample_sticky_sets, sample_ul_pair
+from mabamab.sticky import in_active, sample_sticky_sets, sample_ul_pair
 from mabamab.ucb import phase_argmax, ucb_argmax
 
 ALPHA, BETA = 4.0, 2.0
 
 
-def test_epoch_start_is_ceil_j_beta():
-    assert [_epoch_start(j, 2.0) for j in range(1, 6)] == [1, 4, 9, 16, 25]
+def test_ceil_pow_is_ceil_j_p():
+    assert [ceil_pow(j, 2.0) for j in range(1, 6)] == [1, 4, 9, 16, 25]
     # beta = 1.5: 2.83 -> 3, 5.20 -> 6, 4**1.5 = 8 exactly (float-error guard), 11.62 -> 12
-    assert [_epoch_start(j, 1.5) for j in range(1, 6)] == [1, 3, 6, 8, 12]
+    assert [ceil_pow(j, 1.5) for j in range(1, 6)] == [1, 3, 6, 8, 12]
 
 
 def test_ucb_pulls_unplayed_arms_first_in_arm_order():
@@ -84,7 +83,7 @@ def test_rebuild_active_is_sorted_sticky_plus_ul():
     row = np.empty(4, dtype=np.int32)
     _rebuild_active(sticky, row, 6, 0)
     assert row.tolist() == [0, 1, 5, 6]
-    assert _in_active(row, 6) and not _in_active(row, 2)
+    assert in_active(row, 6) and not in_active(row, 2)
 
 
 def _instance(K=100, n=25, S=4, seed=11):
@@ -97,8 +96,9 @@ def test_run_state_keeps_active_set_sticky_plus_ul():
     active, U, L = active.copy(), U.copy(), L.copy()
     curve = np.zeros(1)
     agent_regret = np.zeros(n)
-    run_gossip(mu, ALPHA, BETA, sticky, active, U, L, agent_seeds(1, n), 5000,
-               np.array([5000], dtype=np.int64), curve, agent_regret)
+    run_alg1(mu, ALPHA, BETA, 0.0, 0, 0, False, sticky, active, U, L,
+             agent_seeds(1, n), 5000, np.array([5000], dtype=np.int64), curve,
+             agent_regret, np.zeros(2, dtype=np.int64))
     for i in range(n):
         assert np.all(np.diff(active[i]) > 0)  # ascending, distinct (C3 order)
         want = np.flatnonzero(sticky[i] | (np.arange(K) == U[i]) | (np.arange(K) == L[i]))

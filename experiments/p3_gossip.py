@@ -30,14 +30,13 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from gosine_ref import arms_from_instance, run_gosine  # noqa: E402
+from mabamab.blocking import ceil_pow  # noqa: E402
 from mabamab.engine import (  # noqa: E402
-    _epoch_start,
-    _next_u64,
-    _uniform,
     agent_seeds,
     make_instance,
     run_trial,
 )
+from mabamab.rng import next_u64, uniform  # noqa: E402
 
 INSTANCE_SEED = 20260101
 K, N, S = 100, 25, 4
@@ -48,8 +47,9 @@ GROWTH_T = [1250, 2500, 5000, 10000, 20000, 40000, 80000]
 def engine_draws(n: int, beta: float, T: int, base_seed: int):
     """Replay the engine's per-agent splitmix64 stream into (uni, rec) arrays.
 
-    Order matches `run_gossip`: one reward uniform per (agent, pull), plus one
-    64-bit draw per (agent, epoch) for the recommender choice.
+    Order matches `run_alg1` with no blocking and no malicious agents: one reward
+    uniform per (agent, pull), plus one 64-bit draw per (agent, epoch) for the
+    recommender choice.
     """
     state = agent_seeds(base_seed, n)
     uni = np.zeros((T + 1, n), dtype=np.float64)
@@ -58,14 +58,14 @@ def engine_draws(n: int, beta: float, T: int, base_seed: int):
     for t in range(1, T + 1):
         epoch = t == A
         for i in range(n):
-            state[i], uni[t, i] = _uniform(state[i])
+            state[i], uni[t, i] = uniform(state[i])
             if epoch:
-                state[i], z = _next_u64(state[i])
+                state[i], z = next_u64(state[i])
                 h = int(z % (n - 1))
                 rec[t, i] = h + 1 if h >= i else h
         if epoch:
             j += 1
-            A = _epoch_start(j, beta)
+            A = ceil_pow(j, beta)
     return uni, rec
 
 
