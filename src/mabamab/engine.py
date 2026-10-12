@@ -57,12 +57,16 @@ def _apply_rec(i, rec, B, phase, U, L, sticky, active):
 
 @njit(cache=True)
 def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, isolated, sticky, active, U, L,
-             rng_state, T, checkpoints, curve, agent_regret, diag):
+             rng_state, T, checkpoints, curve, agent_regret, diag, dropped):
     """Simulate `T` pulls for `n` honest agents and `m` malicious recommenders.
 
     Writes the per-checkpoint mean honest-agent regret into `curve` and the
     per-agent final regret into `agent_regret`. `active`, `U`, `L` are mutated.
     `diag` counts `[no-recommender epochs (C7), malicious recommendations]`.
+    `dropped[c]` is the cumulative number of best-arm discard events up to
+    checkpoint `c`: an honest agent that had arm 1 in its active set at an epoch
+    and no longer has it after the Algorithm 1 lines 9-14 update (spec §11.4:
+    the omniscient strategy is claimed to force these near T~6e4).
     `isolated` removes the communication path (C15b): no blocklists, no recommender
     draw, `R_j := B_j`, so `m` has no effect on the run.
     """
@@ -82,6 +86,8 @@ def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, isolated, sticky, active
                 d[i, a] = j_max
     prev_h = np.full(n, -1, dtype=np.int32)  # H_{j-1}^(i), -1 = none (C7)
     prev_r = np.full(n, -1, dtype=np.int32)  # R_{j-1}^(i)
+    had_best = np.zeros(n, dtype=np.int64)  # arm 1 in S_j^(i), read before the update
+    discards = 0  # cumulative best-arm discard events (spec §11.4)
 
     j = 1
     A_j = 1
@@ -98,6 +104,8 @@ def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, isolated, sticky, active
             regret[i] += mu[0] - mu[arm]
 
         if t == A_j:
+            for i in range(n):
+                had_best[i] = 1 if in_active(active[i], 0) else 0
             for i in range(n):  # line 6, computed for everyone first (C4)
                 B[i] = phase_argmax(phase[i], active[i])
             for i in range(n):
@@ -124,6 +132,9 @@ def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, isolated, sticky, active
             for i in range(n):
                 for k in range(K):
                     phase[i, k] = 0
+            for i in range(n):  # best-arm discard tracking (spec §11.4)
+                if had_best[i] and not in_active(active[i], 0):
+                    discards += 1
             j += 1
             A_j = ceil_pow(j, beta)
 
@@ -132,6 +143,7 @@ def run_alg1(mu, alpha, beta, eta, m, strategy, oracle, isolated, sticky, active
             for i in range(n):
                 total_regret += regret[i]
             curve[c] = total_regret / n  # C10
+            dropped[c] = discards
             c += 1
 
     for i in range(n):
@@ -170,7 +182,8 @@ def make_instance(K: int, n: int, S: int, rng: np.random.Generator):
 
 
 def run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
-              m=0, eta=0.0, strategy=0, oracle=False, isolated=False, diag=None):
+              m=0, eta=0.0, strategy=0, oracle=False, isolated=False, diag=None,
+              dropped=None):
     """Run one Algorithm-1 trial on one instance; the instance arrays are left
     untouched so paired algorithms can share them (spec C11)."""
     n = sticky.shape[0]
@@ -178,6 +191,10 @@ def run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
     agent_regret = np.zeros(n, dtype=np.float64)
     if diag is None:
         diag = np.zeros(2, dtype=np.int64)
+    if dropped is None:
+        dropped = np.zeros(len(checkpoints), dtype=np.int64)
+    else:
+        dropped[:] = 0
     run_alg1(
         np.ascontiguousarray(mu, dtype=np.float64),
         float(alpha),
@@ -197,5 +214,6 @@ def run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,
         curve,
         agent_regret,
         diag,
+        dropped,
     )
     return curve, agent_regret

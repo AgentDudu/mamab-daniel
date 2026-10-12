@@ -12,7 +12,9 @@ from mabamab.engine import (
     make_instance,
     run_alg1,
     run_trial,
+    synthetic_means,
 )
+from mabamab.malicious import STRATEGY_OMNISCIENT
 from mabamab.sticky import in_active, sample_sticky_sets, sample_ul_pair
 from mabamab.ucb import phase_argmax, ucb_argmax
 
@@ -98,7 +100,7 @@ def test_run_state_keeps_active_set_sticky_plus_ul():
     agent_regret = np.zeros(n)
     run_alg1(mu, ALPHA, BETA, 0.0, 0, 0, False, False, sticky, active, U, L,
              agent_seeds(1, n), 5000, np.array([5000], dtype=np.int64), curve,
-             agent_regret, np.zeros(2, dtype=np.int64))
+             agent_regret, np.zeros(2, dtype=np.int64), np.zeros(1, dtype=np.int64))
     for i in range(n):
         assert np.all(np.diff(active[i]) > 0)  # ascending, distinct (C3 order)
         want = np.flatnonzero(sticky[i] | (np.arange(K) == U[i]) | (np.arange(K) == L[i]))
@@ -147,3 +149,32 @@ def test_throughput_gate_one_million_pulls_per_second():
     run_trial(mu, sticky, active, U, L, ALPHA, BETA, T, cps, 1)
     pulls_per_s = n * T / (time.perf_counter() - t0)
     assert pulls_per_s >= 1e6, f"{pulls_per_s:.3g} pulls/s"
+
+
+def test_dropped_counts_agents_that_discarded_the_best_arm():
+    """Spec §11.4: a sticky arm is never pushed out, so agents with arm 1 sticky
+    never count as discarding it, however hard the omniscient strategy attacks."""
+    n, K, S = 8, 25, 3
+    rng = np.random.default_rng(7)
+    mu = synthetic_means(K, rng)
+    sticky = np.zeros((n, K), dtype=bool)
+    sticky[:, 0] = True
+    U = np.empty(n, dtype=np.int32)
+    L = np.empty(n, dtype=np.int32)
+    active = np.empty((n, S + 2), dtype=np.int32)
+    for i in range(n):
+        sticky[i, rng.choice(np.arange(1, K), size=S - 1, replace=False)] = True
+        U[i], L[i] = sample_ul_pair(sticky[i], rng)
+        _rebuild_active(sticky[i], active[i], U[i], L[i])
+    cps = np.array([2000, 8000], dtype=np.int64)
+    dropped = np.zeros(cps.size, dtype=np.int64)
+    run_trial(mu, sticky, active, U, L, ALPHA, BETA, 8000, cps, 5, m=6,
+              strategy=STRATEGY_OMNISCIENT, dropped=dropped)
+    assert (dropped == 0).all()
+
+    # control: arm 1 reachable only via U/L -> the omniscient strategy does push it out
+    mu, sticky, active, U, L = _instance(K=25, n=10, S=3, seed=5)
+    dropped = np.zeros(1, dtype=np.int64)
+    run_trial(mu, sticky, active, U, L, ALPHA, BETA, 8000, np.array([8000], np.int64), 5,
+              m=4, strategy=STRATEGY_OMNISCIENT, dropped=dropped)
+    assert dropped[0] > 0

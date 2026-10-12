@@ -165,6 +165,14 @@ Phases 2→4 are strictly sequential. 5 and 6 can run in parallel once 4 passes.
 - Table 1 metric: `mean_trials( regret_ours(T=1e5) / regret_gossip(T=1e5) )` ± std of the per-trial ratio. Compute both algorithms on the **same** instance/trial seeds (paired) — this is what makes the ±0.1 std reproducible.
 - Run configs as separate processes; write one CSV row per config as it completes (resumable, cheap to re-enter context).
 
+**Figure 1 measured 2026-10-12 (`experiments/p5_fig1.py`, 50 trials, T=1e5, 172 s):** paired
+`proposed/gossip` = 0.421 ± 0.214 uniform / 0.290 ± 0.095 omniscient (< 0.5 ⇒ pass; paper 0.413 /
+0.401). Regret at T=1e5: gossip 6696 / 7663, proposed 2822 / 2212, oracle 842, no_comm 10028.
+Omniscient gossip S-curve confirmed (regret slope 104 → 3761 at T=56234 → 2513). Two recorded
+deviations: the best-arm discard is **not** localised at 6e4 (rate ≈ 0.07/agent/epoch from
+T≈5e2; Algorithm 3 drives it to ~0 after T≈1.3e4), and gossip < no_comm (C15a). Details:
+`STATE.md` Phase 5.
+
 ### Phase 7 — MovieLens
 - Download `ml-1m.zip` (GroupLens). Pick a cohort by (age, gender, occupation) — the paper does not say which; **choose the largest cohort satisfying the ≥30/≥30 filters and record the choice**. This is the main non-reproducibility risk; document it and, if time allows, repeat with a second cohort.
 - Matrix completion: prefer R `softImpute` (the cited method) via `rpy2`, else implement ALS/SVD soft-thresholding in numpy and note the deviation.
@@ -180,6 +188,7 @@ Phases 2→4 are strictly sequential. 5 and 6 can run in parallel once 4 passes.
 
 - Table 1 ratios: **match** if |ours − paper| ≤ 0.10; **within-noise** if within paper's reported ±std; else **mismatch** (investigate before reporting).
 - Figure 1/2 qualitative claims (all must hold): proposed ≈ oracle ≪ no-comm; gossip ≫ no-comm; proposed < 0.5 × gossip; S-curve for gossip under omniscient; best-arm discard bump at `T ≈ 4–6e4`.
+  **Measured 2026-10-12:** `gossip ≫ no-comm` fails (0.67/0.76 — C15a, spec §11.1) and the discard bump is not localised at 4–6e4; the matching landmark that *does* hold is the gossip regret-slope peak at `T ≈ 5.6e4`. Both are reported as mismatches, not tuned away.
 - Scaling claims: slope of regret vs log T roughly linear in log T; `m` small vs `K` ⇒ improvement, `m` comparable to `K` ⇒ no improvement (Remark 7).
 
 ## 5. Compute budget

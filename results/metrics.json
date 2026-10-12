@@ -337,5 +337,192 @@
       "gossip_over_no_comm": 0.7553841540118172,
       "gossip_over_no_comm_alg1": 0.376206618134213
     }
+  },
+  "fig1": {
+    "K": 100,
+    "n": 25,
+    "S": 4,
+    "m": 10,
+    "eta": 2.0,
+    "beta": 2.0,
+    "alpha": 4.0,
+    "trials": 50,
+    "T": 100000,
+    "instance_seed": 20260101,
+    "checkpoints": [
+      100,
+      133,
+      178,
+      237,
+      316,
+      422,
+      562,
+      750,
+      1000,
+      1334,
+      1778,
+      2371,
+      3162,
+      4217,
+      5623,
+      7499,
+      10000,
+      13335,
+      17783,
+      23714,
+      31623,
+      42170,
+      56234,
+      74989,
+      100000
+    ],
+    "final_regret": {
+      "uniform/proposed": {
+        "mean": 2822.1383014000003,
+        "se": 206.19383960906734
+      },
+      "uniform/gossip": {
+        "mean": 6696.401858700002,
+        "se": 57.867667683772886
+      },
+      "uniform/oracle": {
+        "mean": 841.6742586800001,
+        "se": 13.860901816787523
+      },
+      "uniform/no_comm": {
+        "mean": 10028.268570760001,
+        "se": 56.55712859724402
+      },
+      "omniscient/proposed": {
+        "mean": 2212.33245868,
+        "se": 96.53797339018355
+      },
+      "omniscient/gossip": {
+        "mean": 7663.313765840001,
+        "se": 47.11723976988355
+      },
+      "omniscient/oracle": {
+        "mean": 841.6742586800001,
+        "se": 13.860901816787523
+      },
+      "omniscient/no_comm": {
+        "mean": 10028.268570760001,
+        "se": 56.55712859724402
+      }
+    },
+    "best_arm_discards_per_agent": {
+      "uniform/proposed": 7.579199999999999,
+      "uniform/gossip": 17.241600000000002,
+      "uniform/oracle": 2.0632,
+      "omniscient/proposed": 6.284800000000001,
+      "omniscient/gossip": 16.2744,
+      "omniscient/oracle": 2.0632
+    },
+    "proposed_over_gossip_paired": {
+      "uniform": {
+        "mean": 0.4207118038738578,
+        "se": 0.030284488656599967,
+        "std": 0.21414367293848915,
+        "mean_over_mean": 0.4214410008463669
+      },
+      "omniscient": {
+        "mean": 0.29017398297453656,
+        "se": 0.01338945074628484,
+        "std": 0.0946777141906129,
+        "mean_over_mean": 0.2886913581095552
+      }
+    },
+    "checks": {
+      "uniform": {
+        "proposed_under_half_gossip": {
+          "value": 0.4207118038738578,
+          "pass": true
+        },
+        "oracle_below_proposed": {
+          "oracle": 841.6742586800001,
+          "proposed": 2822.1383014000003,
+          "pass": true
+        },
+        "gossip_vs_no_comm": {
+          "gossip": 6696.401858700002,
+          "no_comm": 10028.268570760001,
+          "ratio": 0.6677525448635356,
+          "pass": false,
+          "gate": false,
+          "note": "known C15a deviation (spec \u00a711.1), not a Phase-5 gate"
+        },
+        "gossip_bump_T": {
+          "slope_first_third": 108.53192639847241,
+          "slope_last_third": 2098.557147455628,
+          "slope_peak": 2493.925196046615,
+          "slope_peak_T": 100000,
+          "slope_min": 40.835964846444334,
+          "target_T": 60000.0,
+          "pass_": true
+        },
+        "discard_rate": {
+          "peak_T": 7499,
+          "peak": 0.08728000000000002,
+          "cumulative_per_agent_at_T": 17.241600000000002,
+          "target_T": 60000.0,
+          "pass": false,
+          "gate": false,
+          "note": "deviation: discards run at ~0.07/agent/epoch from T~5e2 on, they are not localised at 6e4"
+        },
+        "blocking_stops_discards": {
+          "gossip_rate_last_third": 0.05501259297711332,
+          "proposed_rate_last_third": 0.0060784957548911086,
+          "pass": true
+        }
+      },
+      "omniscient": {
+        "proposed_under_half_gossip": {
+          "value": 0.29017398297453656,
+          "pass": true
+        },
+        "oracle_below_proposed": {
+          "oracle": 841.6742586800001,
+          "proposed": 2212.33245868,
+          "pass": true
+        },
+        "gossip_vs_no_comm": {
+          "gossip": 7663.313765840001,
+          "no_comm": 10028.268570760001,
+          "ratio": 0.7641711738938031,
+          "pass": false,
+          "gate": false,
+          "note": "known C15a deviation (spec \u00a711.1), not a Phase-5 gate"
+        },
+        "gossip_bump_T": {
+          "slope_first_third": 103.58997681181127,
+          "slope_last_third": 2513.0746815231632,
+          "slope_peak": 3761.1467217563554,
+          "slope_peak_T": 56234,
+          "slope_min": 40.572689025965026,
+          "target_T": 60000.0,
+          "pass_": true
+        },
+        "s_curve": {
+          "slope_first_third": 103.58997681181127,
+          "slope_peak": 3761.1467217563554,
+          "slope_last_third": 2513.0746815231632,
+          "pass": true
+        },
+        "discard_rate": {
+          "peak_T": 1778,
+          "peak": 0.08192000000000002,
+          "cumulative_per_agent_at_T": 16.2744,
+          "target_T": 60000.0,
+          "pass": false,
+          "gate": false,
+          "note": "deviation: discards run at ~0.07/agent/epoch from T~5e2 on, they are not localised at 6e4"
+        },
+        "blocking_stops_discards": {
+          "gossip_rate_last_third": 0.05142043050941308,
+          "proposed_rate_last_third": 0.0019708732465854536,
+          "pass": true
+        }
+      }
+    }
   }
 }
