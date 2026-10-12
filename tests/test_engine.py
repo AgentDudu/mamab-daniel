@@ -5,25 +5,26 @@ import time
 import numpy as np
 import pytest
 
+from mabamab.blocking import ceil_pow
 from mabamab.engine import (
-    _epoch_start,
-    _in_active,
     _rebuild_active,
     agent_seeds,
     make_instance,
-    run_gossip,
+    run_alg1,
     run_trial,
+    synthetic_means,
 )
-from mabamab.sticky import sample_sticky_sets, sample_ul_pair
+from mabamab.malicious import STRATEGY_OMNISCIENT
+from mabamab.sticky import in_active, sample_sticky_sets, sample_ul_pair
 from mabamab.ucb import phase_argmax, ucb_argmax
 
 ALPHA, BETA = 4.0, 2.0
 
 
-def test_epoch_start_is_ceil_j_beta():
-    assert [_epoch_start(j, 2.0) for j in range(1, 6)] == [1, 4, 9, 16, 25]
+def test_ceil_pow_is_ceil_j_p():
+    assert [ceil_pow(j, 2.0) for j in range(1, 6)] == [1, 4, 9, 16, 25]
     # beta = 1.5: 2.83 -> 3, 5.20 -> 6, 4**1.5 = 8 exactly (float-error guard), 11.62 -> 12
-    assert [_epoch_start(j, 1.5) for j in range(1, 6)] == [1, 3, 6, 8, 12]
+    assert [ceil_pow(j, 1.5) for j in range(1, 6)] == [1, 3, 6, 8, 12]
 
 
 def test_ucb_pulls_unplayed_arms_first_in_arm_order():
@@ -84,7 +85,7 @@ def test_rebuild_active_is_sorted_sticky_plus_ul():
     row = np.empty(4, dtype=np.int32)
     _rebuild_active(sticky, row, 6, 0)
     assert row.tolist() == [0, 1, 5, 6]
-    assert _in_active(row, 6) and not _in_active(row, 2)
+    assert in_active(row, 6) and not in_active(row, 2)
 
 
 def _instance(K=100, n=25, S=4, seed=11):
@@ -97,8 +98,9 @@ def test_run_state_keeps_active_set_sticky_plus_ul():
     active, U, L = active.copy(), U.copy(), L.copy()
     curve = np.zeros(1)
     agent_regret = np.zeros(n)
-    run_gossip(mu, ALPHA, BETA, sticky, active, U, L, agent_seeds(1, n), 5000,
-               np.array([5000], dtype=np.int64), curve, agent_regret)
+    run_alg1(mu, ALPHA, BETA, 0.0, 0, 0, False, False, sticky, active, U, L,
+             agent_seeds(1, n), 5000, np.array([5000], dtype=np.int64), curve,
+             agent_regret, np.zeros(2, dtype=np.int64), np.zeros(1, dtype=np.int64))
     for i in range(n):
         assert np.all(np.diff(active[i]) > 0)  # ascending, distinct (C3 order)
         want = np.flatnonzero(sticky[i] | (np.arange(K) == U[i]) | (np.arange(K) == L[i]))
@@ -147,3 +149,32 @@ def test_throughput_gate_one_million_pulls_per_second():
     run_trial(mu, sticky, active, U, L, ALPHA, BETA, T, cps, 1)
     pulls_per_s = n * T / (time.perf_counter() - t0)
     assert pulls_per_s >= 1e6, f"{pulls_per_s:.3g} pulls/s"
+
+
+def test_dropped_counts_agents_that_discarded_the_best_arm():
+    """Spec §11.4: a sticky arm is never pushed out, so agents with arm 1 sticky
+    never count as discarding it, however hard the omniscient strategy attacks."""
+    n, K, S = 8, 25, 3
+    rng = np.random.default_rng(7)
+    mu = synthetic_means(K, rng)
+    sticky = np.zeros((n, K), dtype=bool)
+    sticky[:, 0] = True
+    U = np.empty(n, dtype=np.int32)
+    L = np.empty(n, dtype=np.int32)
+    active = np.empty((n, S + 2), dtype=np.int32)
+    for i in range(n):
+        sticky[i, rng.choice(np.arange(1, K), size=S - 1, replace=False)] = True
+        U[i], L[i] = sample_ul_pair(sticky[i], rng)
+        _rebuild_active(sticky[i], active[i], U[i], L[i])
+    cps = np.array([2000, 8000], dtype=np.int64)
+    dropped = np.zeros(cps.size, dtype=np.int64)
+    run_trial(mu, sticky, active, U, L, ALPHA, BETA, 8000, cps, 5, m=6,
+              strategy=STRATEGY_OMNISCIENT, dropped=dropped)
+    assert (dropped == 0).all()
+
+    # control: arm 1 reachable only via U/L -> the omniscient strategy does push it out
+    mu, sticky, active, U, L = _instance(K=25, n=10, S=3, seed=5)
+    dropped = np.zeros(1, dtype=np.int64)
+    run_trial(mu, sticky, active, U, L, ALPHA, BETA, 8000, np.array([8000], np.int64), 5,
+              m=4, strategy=STRATEGY_OMNISCIENT, dropped=dropped)
+    assert dropped[0] > 0

@@ -156,14 +156,22 @@ Phases 2→4 are strictly sequential. 5 and 6 can run in parallel once 4 passes.
 - Blocking rule exactly as Alg 3 (note: it compares `B_j^(i)` to `R_{j-1}^(i)`, i.e. the block decision at epoch `j` punishes the recommender chosen at epoch `j−1`).
 - Malicious strategies: uniform; omniscient (needs the *receiving* honest agent's per-arm counts — that is the "private information" the name refers to).
 - Oracle: honest agents permanently exclude `{n+1..n+m}` from `Get-Rec` sampling.
-- No-comm: each honest agent runs UCB(α) over all `K` arms (document this choice; paper does not specify).
-- Theorem-1 smoke test: `m=1`, uniform strategy, `K=25`, `T=1e4` → gossip regret ≈ no-comm regret (ratio within ~1.3).
+- No-comm: each honest agent runs UCB(α) over all `K` arms (document this choice; paper does not specify). **Frozen as C15a with the same α = 4**; the alternative reading (Algorithm 1 minus `Get-Rec`) was implemented as `no_comm_alg1` and rejected — measured linear regret, spec §11.1.
+- Theorem-1 smoke test: `m=1`, uniform strategy, `K=25`, `T` swept 1e4→1e6. Gate (restated 2026-10-12 after measurement): `gossip_regret(T) / [α(1−1/√α)² Σ_{k≥2} 1/Δ_k · log T]` stays **O(1) and non-decreasing** in `T` — that is what Theorem 1 states (a liminf lower bound). The original gate (gossip/no-comm ratio within ~1.3 at `T=1e4`) is unattainable under C15a: measured 0.428 @1e4 → 0.793 @1e6, crossing only near `T ≈ 5e6`.
 
 ### Phase 5–6 — synthetic figures/table
 - Regret definition: per-agent cumulative regret `E[R^(i)(T)] = Σ_t Σ_{k≠1} Δ_k · 1{I_t^(i)=k}`, averaged over honest agents; report mean ± std across the 50 trials.
 - Curves: regret vs `T` on log-x, up to `T ≈ 1e5` (paper's x-axis reaches ~1e5; the discard bump is at 6e4).
 - Table 1 metric: `mean_trials( regret_ours(T=1e5) / regret_gossip(T=1e5) )` ± std of the per-trial ratio. Compute both algorithms on the **same** instance/trial seeds (paired) — this is what makes the ±0.1 std reproducible.
 - Run configs as separate processes; write one CSV row per config as it completes (resumable, cheap to re-enter context).
+
+**Figure 1 measured 2026-10-12 (`experiments/p5_fig1.py`, 50 trials, T=1e5, 172 s):** paired
+`proposed/gossip` = 0.421 ± 0.214 uniform / 0.290 ± 0.095 omniscient (< 0.5 ⇒ pass; paper 0.413 /
+0.401). Regret at T=1e5: gossip 6696 / 7663, proposed 2822 / 2212, oracle 842, no_comm 10028.
+Omniscient gossip S-curve confirmed (regret slope 104 → 3761 at T=56234 → 2513). Two recorded
+deviations: the best-arm discard is **not** localised at 6e4 (rate ≈ 0.07/agent/epoch from
+T≈5e2; Algorithm 3 drives it to ~0 after T≈1.3e4), and gossip < no_comm (C15a). Details:
+`STATE.md` Phase 5.
 
 ### Phase 7 — MovieLens
 - Download `ml-1m.zip` (GroupLens). Pick a cohort by (age, gender, occupation) — the paper does not say which; **choose the largest cohort satisfying the ≥30/≥30 filters and record the choice**. This is the main non-reproducibility risk; document it and, if time allows, repeat with a second cohort.
@@ -180,6 +188,7 @@ Phases 2→4 are strictly sequential. 5 and 6 can run in parallel once 4 passes.
 
 - Table 1 ratios: **match** if |ours − paper| ≤ 0.10; **within-noise** if within paper's reported ±std; else **mismatch** (investigate before reporting).
 - Figure 1/2 qualitative claims (all must hold): proposed ≈ oracle ≪ no-comm; gossip ≫ no-comm; proposed < 0.5 × gossip; S-curve for gossip under omniscient; best-arm discard bump at `T ≈ 4–6e4`.
+  **Measured 2026-10-12:** `gossip ≫ no-comm` fails (0.67/0.76 — C15a, spec §11.1) and the discard bump is not localised at 4–6e4; the matching landmark that *does* hold is the gossip regret-slope peak at `T ≈ 5.6e4`. Both are reported as mismatches, not tuned away.
 - Scaling claims: slope of regret vs log T roughly linear in log T; `m` small vs `K` ⇒ improvement, `m` comparable to `K` ⇒ no improvement (Remark 7).
 
 ## 5. Compute budget
