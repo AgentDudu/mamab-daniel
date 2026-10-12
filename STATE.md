@@ -47,3 +47,14 @@ Plan: `REPLICATION_PLAN.md`. Contract for all phases after Phase 1: `specs/paper
 - numba 0.68 gotchas for later phases: `int(uint64)` inside `@njit` yields float64 (use `np.int64(...)`); `SeedSequence.generate_stream` does not exist (use `spawn` + `generate_state`).
 - Not implemented (deferred by plan): Algorithm 3 blocking, malicious agents + uniform/omniscient strategies, `oracle` and `no_comm` baselines.
 - **Next action:** Phase 3 — `experiments/p3_gossip.py`, compare `m=0` gossip regret against `gosine` `Synch.py` on a shared instance and check the `(K/n)·log T/Δ` slope.
+
+### Phase 3 — gossiping baseline (m=0) — PASS (2026-10-12)
+
+- `experiments/gosine_ref.py` ports upstream `Synch.py` (`github.com/ronshee/gosine`, commit `a9eec637…`: `getarm`/`update`/`update_delta_T`, arms-as-rows state, running-average means). `experiments/p3_gossip.py` harness, `tests/test_gossip.py` (4 tests); `.venv/Scripts/python -m pytest` → **20 passed**.
+- Parity is **exact, not statistical**: `engine_draws()` replays the engine's splitmix64 stream into the port, so both see identical draws — per-agent regret identical, `max|diff| = 0.0` over 5 trials at T=2e4.
+- The only divergence found was tie-breaking. Upstream resolves `argmax` ties in `arms` row order (sticky first, then U, then L) and keeps the U label on an equal-count epoch; spec C3 fixes both to lowest arm index. With C3 conventions the port matches exactly; with upstream's it costs **+44.3 ± 20 regret at T=2e4** (25 trials, z=2.18) and +46 ± 25 at T=1e5 (z=1.82) — a real but modest convention effect, recorded rather than hidden.
+- Independent-stream parity with C3 conventions: port 656.7 ± 12.5 vs ours 642.0 ± 13.3 (z=0.81) ⇒ matches `gosine` within Monte-Carlo noise.
+- Growth (25 trials, engine, instance seed 20260101): T=1250→188.5, 2e4→642.0, 8e4→838.1. Fit on T≥1e4: `regret ≈ −813 + 146.6·ln T` ⇒ logarithmic in T as Theorem 2 predicts, with empirical constant 3.7× the asymptotic `(K/n)/Δ = 40` and 0.147× the single-agent `K/Δ = 1000` (pre-asymptotic constant inflation, not a slope mismatch).
+- Artifacts: `results/p3_parity.csv`, `p3_tiebreak.csv`, `p3_growth.csv`, `p3_scale.csv`; `results/metrics.json` → `gossip`. Command: `.venv/Scripts/python experiments/p3_gossip.py --trials 25 --t 20000 --parity-trials 5 --scale-t 100000 --scale-trials 5 --growth-trials 25` (~18 min).
+- Carried forward: `gosine_ref.run_gosine(tie=…, swap_tie=…, exact_score=…)` keeps both conventions selectable — Phase 5/6 gossip curves must use the C3-aligned settings so paired ratios are not polluted by tie-breaks.
+- **Next action:** Phase 4 — `src/mabamab/{blocking,malicious,baselines}.py` (Alg 3 blocks `B_j ≠ R_{j−1}` until `⌈j^η⌉`, uniform + omniscient strategies, oracle/no-comm) and the Theorem-1 smoke test (m=1 uniform ⇒ gossip ≈ no-comm).
