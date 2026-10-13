@@ -196,6 +196,18 @@ Details: `STATE.md` Phase 7, `results/arm_means.csv`.
 - Same harness as Phase 5/6, arm means swapped.
 - Report table: paper value | replicated value | delta | verdict (match / within-noise / mismatch), for Figure 1, Figure 2, and all 48 Table 1 cells.
 
+**Real data measured 2026-10-13 (`experiments/p8_real.py`, 50 paired trials, T=1e5, 8e9 pulls in
+~5 min):** Table 1 real columns **16/24 match, 6 within-noise, 2 mismatch, mean |Δ| = 0.086**
+(`results/table1_real.csv`). Both mismatches are omniscient-side and were investigated: the
+`K=75` family sits at 0.70–0.79 because the C21 top-75 subset shrinks the gossip denominator
+(3244 vs 4215), and `m=10 K=100 η=3` uniform 0.405 vs 0.564 is our blocking being *stronger*
+than the paper's. Figure 2 (`m=15 K=100 η=2`): paired ratio 0.485 ± 0.074 uniform (< 0.5 holds)
+/ 0.580 ± 0.046 omniscient (does not hold); final regret gossip 5162 / 4088, proposed 2505 /
+2366, oracle 1077, no_comm 6825. The Fig-2 regret bump lands at **T = 31623** (paper ≈ 4e4) and
+the omniscient S-curve holds; blocking only halves the best-arm discards here, it does not stop
+them. Cohort sensitivity (`25-M-0`): ratios 0.419 / 0.572 ⇒ cohort choice moves them ≤ 0.07.
+Details: `STATE.md` Phase 8, spec §11–§12.
+
 ---
 
 ## 4. Acceptance tolerances
