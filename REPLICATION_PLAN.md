@@ -185,6 +185,13 @@ proposed-side (gossip denominators tight ±278–409): `m=10 K=100 η=2` 0.290 v
 - Matrix completion: prefer R `softImpute` (the cited method) via `rpy2`, else implement ALS/SVD soft-thresholding in numpy and note the deviation.
 - Arm means = fraction of ratings ≥ 4 per movie from the completed matrix; keep top/first `K = 100` arms (paper does not state selection; document).
 
+**MovieLens measured 2026-10-13 (`experiments/p7_movielens.py`):** cohort `18-M-4`
+(340 users × 695 movies, 45,187 ratings, density 0.191) — the largest cohort surviving the
+≥30/≥30 filters; numpy softImpute at max rank, λ = 7.807 (3-fold holdout RMSE 0.921);
+star-rounded ≥ 4 test ⇒ 100 arms, **mean arm mean 0.566** (range 0–1, Δ₂ = 0.0029).
+Runner-up cohort `25-M-0` gives 100 arms, mean 0.585. Conventions frozen as spec **C17–C20**.
+Details: `STATE.md` Phase 7, `results/arm_means.csv`.
+
 ### Phase 8–9 — real data + report
 - Same harness as Phase 5/6, arm means swapped.
 - Report table: paper value | replicated value | delta | verdict (match / within-noise / mismatch), for Figure 1, Figure 2, and all 48 Table 1 cells.

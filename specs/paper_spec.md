@@ -118,6 +118,10 @@ Blocking at epoch `j` punishes the agent contacted at epoch `j−1` (not the one
 | C14 | Does the oracle also block honest agents? | Primary oracle: Algorithm 1 + Algorithm 3 **plus** permanent blocklist of `{n+1..n+m}` (i.e. `d(i')=∞` for malicious). Sensitivity variant (logged separately if cheap): honest-only sampling with **no** Algorithm 3 blocking. | paper gives no pseudocode (line 808); *our choice* |
 | C15 | No-communication baseline | Each honest agent runs `UCB(α)` over **all K arms** (no sticky set, no active set, no communication), with the **same `α = 4`** as every other algorithm (C15a). | paper gives no pseudocode (line 808); *our choice, frozen 2026-10-12* — the alternative reading C15b was tested and rejected (§11.1) |
 | C16 | Reward sampling | Bernoulli per pull from the arm mean (synthetic and real). | §2 + §6.2 |
+| C17 | MovieLens cohort | Largest `(age, gender, occupation)` cohort surviving the ≥30-ratings-per-user and ≥30-ratings-per-movie filters: **`18-M-4`** (340 users × 695 movies, 45,187 ratings, density 0.191). Runner-up `25-M-0` (183 × 516) is also run. Filters applied in one pass, users then movies. | *our choice* — the paper never says which cohort (§12.6) |
+| C18 | Matrix completion | numpy re-implementation of the cited algorithm (`softImpute`): iterate {impute missing from the current estimate → rank-r SVD → soft-threshold singular values by λ}, offset by column (movie) means, output clipped to [1,5]. Rank and λ picked by 3-fold holdout RMSE on observed ratings: `18-M-4` → max rank, λ = 7.807 (RMSE 0.921); `25-M-0` → rank 20, λ = 11.626 (RMSE 0.901). | *our choice* — the paper states neither rank nor λ |
+| C19 | Star rounding for the ≥4 test | Completed ratings are rounded to whole stars before the "rating ≥ 4" test (the paper's reward is "rated it 4 or 5 stars"). Thresholding the unrounded estimates instead gives mean arm mean **0.25** — nuclear-norm shrinkage removes the bimodal 4/5 mass; rounding gives **0.566** vs the cohort's observed 0.616. Both columns are kept in `results/arm_means.csv`. | *our choice* |
+| C20 | Which K=100 arms | Seeded uniform sample of 100 of the filtered movies (`seed = 20260101`), then sorted by arm mean **descending** so arm index 0 is the best arm (the engine measures regret against it). The 100 most-rated movies instead would raise the mean arm mean to 0.783 — popular titles are liked disproportionately by this cohort — and is recorded as a sensitivity. | *our choice* — the paper never says (§12.6) |
 
 ## 6. Experiment parameters
 
@@ -195,10 +199,11 @@ Tolerances (plan §4): match if `|ours − paper| ≤ 0.10`; within-noise if ins
 
 1. MovieLens `ml-1m` (Harper & Konstan 2015). Movies = arms.
 2. Extract the rating matrix restricted to users with the **same age, gender, and occupation**; keep users with **≥ 30 ratings**; keep movies rated **≥ 30 times** by that user set.
-3. **Matrix completion** (Hastie et al. 2015, `softImpute`) to estimate missing entries. *Deviation:* no R/`rpy2`/`softImpute` in this env (STATE.md Phase 0) → implement soft-thresholded ALS/SVD in numpy; rank and λ are **not stated in the paper** → record ours.
-4. Arm mean = fraction of (estimated) ratings `≥ 4` on the 1–5 scale; Bernoulli rewards.
+3. **Matrix completion** (Hastie et al. 2015, `softImpute`) to estimate missing entries. *Deviation:* no R/`rpy2`/`softImpute` in this env (STATE.md Phase 0) → implemented soft-thresholded SVD in numpy (`experiments/p7_movielens.py::softimpute`); rank and λ are **not stated in the paper** → ours are frozen as **C18**.
+4. Arm mean = fraction of (estimated) ratings `≥ 4` on the 1–5 scale; Bernoulli rewards. Rounding convention frozen as **C19**.
 5. Run the four algorithms with `K=100`, `m=15`, `η=2` (Fig 2); Table 1 real columns use the same grid as §6.
-6. **Not in paper:** which cohort, and which 100 of the completed movies. Our choice: largest cohort passing the ≥30/≥30 filters, and arm selection recorded in `results/arm_means.csv`; repeat with a second cohort if time allows.
+6. **Not in paper:** which cohort, and which 100 of the completed movies. Frozen as **C17** (cohort `18-M-4`, runner-up `25-M-0` also run) and **C20** (arm selection). Artifacts: `results/arm_means.csv` (primary, Phase 8 input), `results/arm_means_25-M-0.csv`, `results/p7_cohorts.csv`, `results/p7_softimpute.csv`, `results/metrics.json` → `movielens`.
+7. **Phase-8 warning measured 2026-10-13:** the completed matrix has near-ties at the top — cohort `18-M-4` best arm mean 1.000 with `Δ₂ = 0.0029` and 7 arms within 0.01 of the best (`25-M-0`: `Δ₂ = 0.0000`, 14 arms). With `Δ_k → 0` the instance is much harder than the synthetic one (`Δ₂ = 0.1`), so real-data regret magnitudes are not comparable to the synthetic columns cell-for-cell.
 
 ## 13. Theorems as empirical checks
 
