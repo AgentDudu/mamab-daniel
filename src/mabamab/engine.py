@@ -168,9 +168,10 @@ def synthetic_means(K: int, rng: np.random.Generator) -> np.ndarray:
     return mu
 
 
-def make_instance(K: int, n: int, S: int, rng: np.random.Generator):
-    """Draw one trial instance: arm means, sticky sets, initial U/L and active sets."""
-    mu = synthetic_means(K, rng)
+def make_instance_from_means(mu: np.ndarray, n: int, S: int, rng: np.random.Generator):
+    """Draw sticky sets, initial U/L and active sets around a **fixed** arm-mean
+    vector — the real-data path (spec §12, C17–C21). Arm index 0 must be the best."""
+    K = mu.shape[0]
     sticky = sample_sticky_sets(K, n, S, rng)
     U = np.empty(n, dtype=np.int32)
     L = np.empty(n, dtype=np.int32)
@@ -179,6 +180,11 @@ def make_instance(K: int, n: int, S: int, rng: np.random.Generator):
         U[i], L[i] = sample_ul_pair(sticky[i], rng)
         _rebuild_active(sticky[i], active[i], U[i], L[i])
     return mu, sticky, active, U, L
+
+
+def make_instance(K: int, n: int, S: int, rng: np.random.Generator):
+    """Draw one trial instance: arm means, sticky sets, initial U/L and active sets."""
+    return make_instance_from_means(synthetic_means(K, rng), n, S, rng)
 
 
 def run_trial(mu, sticky, active, U, L, alpha, beta, T, checkpoints, base_seed,

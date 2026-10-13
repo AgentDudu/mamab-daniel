@@ -824,5 +824,440 @@
       "mean_near_0.6": true
     },
     "runtime_s": 636.7
+  },
+  "fig2": {
+    "K": 100,
+    "n": 25,
+    "S": 4,
+    "m": 15,
+    "eta": 2.0,
+    "beta": 2.0,
+    "alpha": 4.0,
+    "trials": 50,
+    "T": 100000,
+    "instance_seed": 20260101,
+    "arm_means": "results\\arm_means.csv",
+    "checkpoints": [
+      100,
+      133,
+      178,
+      237,
+      316,
+      422,
+      562,
+      750,
+      1000,
+      1334,
+      1778,
+      2371,
+      3162,
+      4217,
+      5623,
+      7499,
+      10000,
+      13335,
+      17783,
+      23714,
+      31623,
+      42170,
+      56234,
+      74989,
+      100000
+    ],
+    "final_regret": {
+      "uniform/proposed": {
+        "mean": 2505.16972,
+        "se": 53.000267552666735
+      },
+      "uniform/gossip": {
+        "mean": 5162.42913174,
+        "se": 12.016973578113165
+      },
+      "uniform/oracle": {
+        "mean": 1076.78662114,
+        "se": 39.26462341693188
+      },
+      "uniform/no_comm": {
+        "mean": 6824.88916938,
+        "se": 1.5918805538150047
+      },
+      "omniscient/proposed": {
+        "mean": 2366.0604447,
+        "se": 22.722417178981367
+      },
+      "omniscient/gossip": {
+        "mean": 4088.37244,
+        "se": 26.771060641385542
+      },
+      "omniscient/oracle": {
+        "mean": 1076.78662114,
+        "se": 39.26462341693188
+      },
+      "omniscient/no_comm": {
+        "mean": 6824.88916938,
+        "se": 1.5918805538150047
+      }
+    },
+    "best_arm_discards_per_agent": {
+      "uniform/proposed": 5.2303999999999995,
+      "uniform/gossip": 9.436,
+      "uniform/oracle": 4.8912,
+      "omniscient/proposed": 2.4792,
+      "omniscient/gossip": 8.7152,
+      "omniscient/oracle": 4.8912
+    },
+    "proposed_over_gossip_paired": {
+      "uniform": {
+        "mean": 0.4854906127584489,
+        "se": 0.01043738449733515,
+        "std": 0.0738034535591703,
+        "mean_over_mean": 0.4852695612996494
+      },
+      "omniscient": {
+        "mean": 0.5798259114815827,
+        "se": 0.006505337575641425,
+        "std": 0.04599968313643707,
+        "mean_over_mean": 0.5787291836601853
+      }
+    },
+    "checks": {
+      "uniform": {
+        "proposed_under_half_gossip": {
+          "value": 0.4854906127584489,
+          "pass": true
+        },
+        "oracle_below_proposed": {
+          "oracle": 1076.78662114,
+          "proposed": 2505.16972,
+          "pass": true
+        },
+        "gossip_vs_no_comm": {
+          "gossip": 5162.42913174,
+          "no_comm": 6824.88916938,
+          "ratio": 0.7564121560979101,
+          "pass": false,
+          "gate": false,
+          "note": "known C15a deviation (spec \u00a711.1), not a gate"
+        },
+        "gossip_bump_T": {
+          "slope_first_third": 53.26338190138935,
+          "slope_last_third": 1857.6258205788668,
+          "slope_peak": 3418.524825845658,
+          "slope_peak_T": 100000,
+          "slope_min": 22.480457181677785,
+          "target_T": 40000.0
+        },
+        "discard_rate": {
+          "peak_T": 100000,
+          "peak": 0.037044444444444415,
+          "cumulative_per_agent_at_T": 9.436,
+          "target_T": 40000.0,
+          "pass": false,
+          "gate": false,
+          "note": "Phase-5 deviation re-checked on real data"
+        },
+        "blocking_stops_discards": {
+          "gossip_rate_last_third": 0.029968777916205242,
+          "proposed_rate_last_third": 0.013809665928386856,
+          "pass": false
+        }
+      },
+      "omniscient": {
+        "proposed_under_half_gossip": {
+          "value": 0.5798259114815827,
+          "pass": false
+        },
+        "oracle_below_proposed": {
+          "oracle": 1076.78662114,
+          "proposed": 2366.0604447,
+          "pass": true
+        },
+        "gossip_vs_no_comm": {
+          "gossip": 4088.37244,
+          "no_comm": 6824.88916938,
+          "ratio": 0.5990386566777618,
+          "pass": false,
+          "gate": false,
+          "note": "known C15a deviation (spec \u00a711.1), not a gate"
+        },
+        "gossip_bump_T": {
+          "slope_first_third": 20.13805346716307,
+          "slope_last_third": 1280.3197267765297,
+          "slope_peak": 1468.3137630928445,
+          "slope_peak_T": 31623,
+          "slope_min": 6.681963559703096,
+          "target_T": 40000.0
+        },
+        "s_curve": {
+          "slope_first_third": 20.13805346716307,
+          "slope_peak": 1468.3137630928445,
+          "slope_last_third": 1280.3197267765297,
+          "pass": true
+        },
+        "discard_rate": {
+          "peak_T": 31623,
+          "peak": 0.05064000000000001,
+          "cumulative_per_agent_at_T": 8.7152,
+          "target_T": 40000.0,
+          "pass": false,
+          "gate": false,
+          "note": "Phase-5 deviation re-checked on real data"
+        },
+        "blocking_stops_discards": {
+          "gossip_rate_last_third": 0.035753193290882244,
+          "proposed_rate_last_third": 0.010843319490586933,
+          "pass": false
+        }
+      }
+    },
+    "cohort_sensitivity": {
+      "arm_means": "results\\arm_means_25-M-0.csv",
+      "proposed_over_gossip_paired": {
+        "uniform": {
+          "mean": 0.4188832931810893,
+          "std": 0.047882390348276724
+        },
+        "omniscient": {
+          "mean": 0.5719309564759362,
+          "std": 0.02283249507587317
+        }
+      },
+      "final_regret": {
+        "uniform/proposed": 1676.1563672130046,
+        "uniform/gossip": 4001.83522185645,
+        "uniform/oracle": 512.9288393442679,
+        "uniform/no_comm": 5482.746793439827,
+        "omniscient/proposed": 1730.7957989069007,
+        "omniscient/gossip": 3028.8719344244373,
+        "omniscient/oracle": 512.9288393442679,
+        "omniscient/no_comm": 5482.746793439827
+      }
+    }
+  },
+  "table1_real": {
+    "n": 25,
+    "alpha": 4.0,
+    "beta": 2.0,
+    "T": 100000,
+    "trials": 50,
+    "instance_seed": 20260101,
+    "arm_means": "results\\arm_means.csv",
+    "K75_convention": "top-75 arm means of the C20 list (C21)",
+    "grid": {
+      "m": [
+        10,
+        15
+      ],
+      "K": [
+        75,
+        100
+      ],
+      "eta": [
+        2,
+        3,
+        4
+      ]
+    },
+    "cells": {
+      "m10_K75_eta2_uniform": {
+        "mean": 0.50081224,
+        "std": 0.05696252800783393,
+        "paper": 0.582,
+        "paper_std": 0.157,
+        "delta": -0.08118775999999994,
+        "verdict": "match"
+      },
+      "m10_K75_eta2_omniscient": {
+        "mean": 0.7113202599999999,
+        "std": 0.05478742377955372,
+        "paper": 0.543,
+        "paper_std": 0.136,
+        "delta": 0.1683202599999999,
+        "verdict": "mismatch"
+      },
+      "m10_K75_eta3_uniform": {
+        "mean": 0.48784398,
+        "std": 0.0667445717195039,
+        "paper": 0.578,
+        "paper_std": 0.168,
+        "delta": -0.09015601999999995,
+        "verdict": "match"
+      },
+      "m10_K75_eta3_omniscient": {
+        "mean": 0.7039308200000001,
+        "std": 0.055454618454611436,
+        "paper": 0.567,
+        "paper_std": 0.204,
+        "delta": 0.13693082000000012,
+        "verdict": "within-noise"
+      },
+      "m10_K75_eta4_uniform": {
+        "mean": 0.48988618,
+        "std": 0.0628723793470778,
+        "paper": 0.525,
+        "paper_std": 0.143,
+        "delta": -0.03511382000000002,
+        "verdict": "match"
+      },
+      "m10_K75_eta4_omniscient": {
+        "mean": 0.70658092,
+        "std": 0.06446466083209894,
+        "paper": 0.593,
+        "paper_std": 0.227,
+        "delta": 0.11358091999999997,
+        "verdict": "within-noise"
+      },
+      "m10_K100_eta2_uniform": {
+        "mean": 0.46634706000000004,
+        "std": 0.0802837590858544,
+        "paper": 0.56,
+        "paper_std": 0.142,
+        "delta": -0.09365294000000002,
+        "verdict": "match"
+      },
+      "m10_K100_eta2_omniscient": {
+        "mean": 0.54966082,
+        "std": 0.038452288971271974,
+        "paper": 0.483,
+        "paper_std": 0.08,
+        "delta": 0.06666082000000007,
+        "verdict": "match"
+      },
+      "m10_K100_eta3_uniform": {
+        "mean": 0.40514797999999996,
+        "std": 0.04756787037378856,
+        "paper": 0.564,
+        "paper_std": 0.143,
+        "delta": -0.15885201999999998,
+        "verdict": "mismatch"
+      },
+      "m10_K100_eta3_omniscient": {
+        "mean": 0.55709884,
+        "std": 0.039546114510943454,
+        "paper": 0.504,
+        "paper_std": 0.108,
+        "delta": 0.05309883999999998,
+        "verdict": "match"
+      },
+      "m10_K100_eta4_uniform": {
+        "mean": 0.42757118,
+        "std": 0.07087168424196978,
+        "paper": 0.535,
+        "paper_std": 0.139,
+        "delta": -0.10742882000000004,
+        "verdict": "within-noise"
+      },
+      "m10_K100_eta4_omniscient": {
+        "mean": 0.5484445399999999,
+        "std": 0.041337935459940474,
+        "paper": 0.521,
+        "paper_std": 0.119,
+        "delta": 0.02744453999999985,
+        "verdict": "match"
+      },
+      "m15_K75_eta2_uniform": {
+        "mean": 0.53194528,
+        "std": 0.06175104866168638,
+        "paper": 0.547,
+        "paper_std": 0.119,
+        "delta": -0.015054720000000077,
+        "verdict": "match"
+      },
+      "m15_K75_eta2_omniscient": {
+        "mean": 0.7773855799999998,
+        "std": 0.06697874998074588,
+        "paper": 0.603,
+        "paper_std": 0.217,
+        "delta": 0.17438557999999982,
+        "verdict": "within-noise"
+      },
+      "m15_K75_eta3_uniform": {
+        "mean": 0.5077709,
+        "std": 0.07366881570569457,
+        "paper": 0.551,
+        "paper_std": 0.138,
+        "delta": -0.04322910000000002,
+        "verdict": "match"
+      },
+      "m15_K75_eta3_omniscient": {
+        "mean": 0.8001946600000003,
+        "std": 0.06228858788509156,
+        "paper": 0.651,
+        "paper_std": 0.229,
+        "delta": 0.14919466000000026,
+        "verdict": "within-noise"
+      },
+      "m15_K75_eta4_uniform": {
+        "mean": 0.5196337600000001,
+        "std": 0.06468498966516144,
+        "paper": 0.557,
+        "paper_std": 0.109,
+        "delta": -0.037366239999999995,
+        "verdict": "match"
+      },
+      "m15_K75_eta4_omniscient": {
+        "mean": 0.7922981600000001,
+        "std": 0.06633324690618372,
+        "paper": 0.645,
+        "paper_std": 0.22,
+        "delta": 0.14729816000000007,
+        "verdict": "within-noise"
+      },
+      "m15_K100_eta2_uniform": {
+        "mean": 0.48549058,
+        "std": 0.07380345114907484,
+        "paper": 0.507,
+        "paper_std": 0.12,
+        "delta": -0.02150942,
+        "verdict": "match"
+      },
+      "m15_K100_eta2_omniscient": {
+        "mean": 0.57982592,
+        "std": 0.04599963167192377,
+        "paper": 0.501,
+        "paper_std": 0.058,
+        "delta": 0.07882592,
+        "verdict": "match"
+      },
+      "m15_K100_eta3_uniform": {
+        "mean": 0.45713854000000004,
+        "std": 0.06162390947471076,
+        "paper": 0.494,
+        "paper_std": 0.12,
+        "delta": -0.03686145999999996,
+        "verdict": "match"
+      },
+      "m15_K100_eta3_omniscient": {
+        "mean": 0.5764547799999999,
+        "std": 0.04469399460197337,
+        "paper": 0.514,
+        "paper_std": 0.089,
+        "delta": 0.06245477999999993,
+        "verdict": "match"
+      },
+      "m15_K100_eta4_uniform": {
+        "mean": 0.42916309999999996,
+        "std": 0.06047432245623605,
+        "paper": 0.514,
+        "paper_std": 0.11,
+        "delta": -0.08483690000000005,
+        "verdict": "match"
+      },
+      "m15_K100_eta4_omniscient": {
+        "mean": 0.57988592,
+        "std": 0.0389884094848294,
+        "paper": 0.511,
+        "paper_std": 0.078,
+        "delta": 0.06888592000000004,
+        "verdict": "match"
+      }
+    },
+    "tally": {
+      "match": 16,
+      "within-noise": 6,
+      "mismatch": 2
+    },
+    "mean_abs_delta": 0.08551376833333334,
+    "missing": []
   }
 }

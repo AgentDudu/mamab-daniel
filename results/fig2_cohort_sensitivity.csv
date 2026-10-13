@@ -1,0 +1,9 @@
+strategy,algorithm,mean_regret,se_across_trials,std_across_trials
+uniform,proposed,1676.156367,27.358586,193.454416
+uniform,gossip,4001.835222,11.155750,78.883063
+uniform,oracle,512.928839,7.118239,50.333548
+uniform,no_comm,5482.746793,1.384713,9.791402
+omniscient,proposed,1730.795799,8.896525,62.907935
+omniscient,gossip,3028.871934,16.809577,118.861659
+omniscient,oracle,512.928839,7.118239,50.333548
+omniscient,no_comm,5482.746793,1.384713,9.791402
