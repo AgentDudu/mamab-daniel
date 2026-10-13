@@ -748,5 +748,81 @@
     },
     "mean_abs_delta": 0.04832265750000001,
     "missing": []
+  },
+  "movielens": {
+    "source": "ml-1m (GroupLens, Harper & Konstan 2015)",
+    "filters": {
+      "min_user_ratings": 30,
+      "min_movie_ratings": 30,
+      "pass": "single pass, users then movies"
+    },
+    "conventions": {
+      "C17": "largest cohort by users surviving the filters",
+      "C18": "numpy softImpute (rank/lambda by 3-fold holdout RMSE)",
+      "C19": "completed ratings clipped to [1,5] and rounded to whole stars before the >= 4 test",
+      "C20": "a seeded uniform sample of k=100 of the filtered movies (arm means stay representative of the cohort), sorted by arm mean descending so arm 0 is the best arm"
+    },
+    "cohorts": {
+      "18-M-4": {
+        "cohort": "18-M-4",
+        "users": 340,
+        "users_below_min_after_movie_filter": 23,
+        "movies": 695,
+        "ratings": 45187,
+        "density": 0.19122725349132458,
+        "observed_frac_ge4": 0.6157523181445991,
+        "lam_max_sigma1": 78.0749517687021,
+        "rank": 0,
+        "lam": 7.807,
+        "iterations": 60,
+        "holdout_rmse": 0.9208996413973368,
+        "completed_mean_rating": 3.5676271412965708,
+        "n_arms": 100,
+        "arm_mean_mean": 0.5663823529411764,
+        "arm_mean_min": 0.0,
+        "arm_mean_max": 1.0,
+        "arm_mean_unrounded_mean": 0.2814411764705882,
+        "arm_mean_mean_top_rated_variant": 0.7831764705882349,
+        "arm_mean_mean_all_movies": 0.5746550994498518,
+        "arm_selection": "random",
+        "gap_to_second_best": 0.002941176470588225,
+        "arms_within_0p01_of_best": 7,
+        "mean_gap_to_best": 0.43361764705882355,
+        "best_arm_movie_id": 1262
+      },
+      "25-M-0": {
+        "cohort": "25-M-0",
+        "users": 183,
+        "users_below_min_after_movie_filter": 20,
+        "movies": 516,
+        "ratings": 24942,
+        "density": 0.26413775575041304,
+        "observed_frac_ge4": 0.6017159810760966,
+        "lam_max_sigma1": 58.13075931925289,
+        "rank": 20,
+        "lam": 11.626,
+        "iterations": 60,
+        "holdout_rmse": 0.9009227287357842,
+        "completed_mean_rating": 3.590345184485411,
+        "n_arms": 100,
+        "arm_mean_mean": 0.5847540983606557,
+        "arm_mean_min": 0.0,
+        "arm_mean_max": 1.0,
+        "arm_mean_unrounded_mean": 0.25409836065573765,
+        "arm_mean_mean_top_rated_variant": 0.7995081967213115,
+        "arm_mean_mean_all_movies": 0.5991231414410979,
+        "arm_selection": "random",
+        "gap_to_second_best": 0.0,
+        "arms_within_0p01_of_best": 14,
+        "mean_gap_to_best": 0.4152459016393443,
+        "best_arm_movie_id": 318
+      }
+    },
+    "exit_checks": {
+      "arms_ge_100": true,
+      "means_in_unit_interval": true,
+      "mean_near_0.6": true
+    },
+    "runtime_s": 636.7
   }
 }

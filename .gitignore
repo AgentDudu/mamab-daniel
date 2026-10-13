@@ -14,3 +14,6 @@ data/
 
 # figures are regenerable from results/*.csv
 *.png
+
+# experiment run logs
+logs/*.log
