@@ -173,6 +173,13 @@ deviations: the best-arm discard is **not** localised at 6e4 (rate ≈ 0.07/agen
 T≈5e2; Algorithm 3 drives it to ~0 after T≈1.3e4), and gossip < no_comm (C15a). Details:
 `STATE.md` Phase 5.
 
+**Table 1 synthetic measured 2026-10-13 (`experiments/p6_table1_synth.py`, 50 paired trials,
+T=1e5, 6e9 pulls in ~80 s):** 21/24 cells match (|Δ| ≤ 0.10), 1 within-noise, 2 mismatch,
+mean |Δ| = 0.048; the whole uniform column matches. Both mismatches are omniscient-column and
+proposed-side (gossip denominators tight ±278–409): `m=10 K=100 η=2` 0.290 vs 0.401 and
+`m=15 K=75 η=3` 0.549 vs 0.439. Our omniscient ratio stds (0.086–0.186) are ~2× the paper's
+(0.034–0.114). Details: `STATE.md` Phase 6, `results/table1_synth.csv`.
+
 ### Phase 7 — MovieLens
 - Download `ml-1m.zip` (GroupLens). Pick a cohort by (age, gender, occupation) — the paper does not say which; **choose the largest cohort satisfying the ≥30/≥30 filters and record the choice**. This is the main non-reproducibility risk; document it and, if time allows, repeat with a second cohort.
 - Matrix completion: prefer R `softImpute` (the cited method) via `rpy2`, else implement ALS/SVD soft-thresholding in numpy and note the deviation.

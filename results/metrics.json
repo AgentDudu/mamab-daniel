@@ -524,5 +524,229 @@
         }
       }
     }
+  },
+  "table1_synth": {
+    "n": 25,
+    "alpha": 4.0,
+    "beta": 2.0,
+    "T": 100000,
+    "trials": 50,
+    "instance_seed": 20260101,
+    "grid": {
+      "m": [
+        10,
+        15
+      ],
+      "K": [
+        75,
+        100
+      ],
+      "eta": [
+        2,
+        3,
+        4
+      ]
+    },
+    "cells": {
+      "m10_K75_eta2_uniform": {
+        "mean": 0.42961831999999994,
+        "std": 0.10725753470273199,
+        "paper": 0.45,
+        "paper_std": 0.16,
+        "delta": -0.02038168000000007,
+        "verdict": "match"
+      },
+      "m10_K75_eta2_omniscient": {
+        "mean": 0.40162308,
+        "std": 0.1470963046449419,
+        "paper": 0.413,
+        "paper_std": 0.052,
+        "delta": -0.011376919999999957,
+        "verdict": "match"
+      },
+      "m10_K75_eta3_uniform": {
+        "mean": 0.36331518,
+        "std": 0.06414910920904418,
+        "paper": 0.415,
+        "paper_std": 0.172,
+        "delta": -0.051684819999999965,
+        "verdict": "match"
+      },
+      "m10_K75_eta3_omniscient": {
+        "mean": 0.3888854,
+        "std": 0.14446374760740327,
+        "paper": 0.415,
+        "paper_std": 0.046,
+        "delta": -0.026114599999999988,
+        "verdict": "match"
+      },
+      "m10_K75_eta4_uniform": {
+        "mean": 0.3878087600000001,
+        "std": 0.10223631080073901,
+        "paper": 0.435,
+        "paper_std": 0.124,
+        "delta": -0.04719123999999991,
+        "verdict": "match"
+      },
+      "m10_K75_eta4_omniscient": {
+        "mean": 0.4358654,
+        "std": 0.18642590240421122,
+        "paper": 0.395,
+        "paper_std": 0.034,
+        "delta": 0.040865399999999996,
+        "verdict": "match"
+      },
+      "m10_K100_eta2_uniform": {
+        "mean": 0.42071184,
+        "std": 0.2141437067518989,
+        "paper": 0.413,
+        "paper_std": 0.086,
+        "delta": 0.007711840000000025,
+        "verdict": "match"
+      },
+      "m10_K100_eta2_omniscient": {
+        "mean": 0.29017402000000003,
+        "std": 0.0946776325936079,
+        "paper": 0.401,
+        "paper_std": 0.076,
+        "delta": -0.11082597999999999,
+        "verdict": "mismatch"
+      },
+      "m10_K100_eta3_uniform": {
+        "mean": 0.37966914,
+        "std": 0.077806494119867,
+        "paper": 0.464,
+        "paper_std": 0.235,
+        "delta": -0.08433086000000001,
+        "verdict": "match"
+      },
+      "m10_K100_eta3_omniscient": {
+        "mean": 0.30549216,
+        "std": 0.14742531399091818,
+        "paper": 0.412,
+        "paper_std": 0.114,
+        "delta": -0.10650783999999996,
+        "verdict": "within-noise"
+      },
+      "m10_K100_eta4_uniform": {
+        "mean": 0.37882535999999994,
+        "std": 0.08966718022043563,
+        "paper": 0.418,
+        "paper_std": 0.107,
+        "delta": -0.03917464000000004,
+        "verdict": "match"
+      },
+      "m10_K100_eta4_omniscient": {
+        "mean": 0.30808328,
+        "std": 0.1334317814502273,
+        "paper": 0.404,
+        "paper_std": 0.07,
+        "delta": -0.09591672000000001,
+        "verdict": "match"
+      },
+      "m15_K75_eta2_uniform": {
+        "mean": 0.4017256,
+        "std": 0.055016067911556346,
+        "paper": 0.418,
+        "paper_std": 0.088,
+        "delta": -0.016274399999999967,
+        "verdict": "match"
+      },
+      "m15_K75_eta2_omniscient": {
+        "mean": 0.53046928,
+        "std": 0.11550129559623908,
+        "paper": 0.433,
+        "paper_std": 0.047,
+        "delta": 0.09746928000000005,
+        "verdict": "match"
+      },
+      "m15_K75_eta3_uniform": {
+        "mean": 0.39780069999999995,
+        "std": 0.080482706215975,
+        "paper": 0.411,
+        "paper_std": 0.081,
+        "delta": -0.013199300000000025,
+        "verdict": "match"
+      },
+      "m15_K75_eta3_omniscient": {
+        "mean": 0.5492352,
+        "std": 0.18044146847730122,
+        "paper": 0.439,
+        "paper_std": 0.054,
+        "delta": 0.11023520000000003,
+        "verdict": "mismatch"
+      },
+      "m15_K75_eta4_uniform": {
+        "mean": 0.3764373199999999,
+        "std": 0.04742108867626774,
+        "paper": 0.423,
+        "paper_std": 0.105,
+        "delta": -0.04656268000000008,
+        "verdict": "match"
+      },
+      "m15_K75_eta4_omniscient": {
+        "mean": 0.5317862600000001,
+        "std": 0.12191737255421335,
+        "paper": 0.451,
+        "paper_std": 0.062,
+        "delta": 0.08078626000000005,
+        "verdict": "match"
+      },
+      "m15_K100_eta2_uniform": {
+        "mean": 0.40401134,
+        "std": 0.08275695767940862,
+        "paper": 0.43,
+        "paper_std": 0.113,
+        "delta": -0.025988659999999997,
+        "verdict": "match"
+      },
+      "m15_K100_eta2_omniscient": {
+        "mean": 0.37964562,
+        "std": 0.08584199643171907,
+        "paper": 0.408,
+        "paper_std": 0.04,
+        "delta": -0.028354379999999957,
+        "verdict": "match"
+      },
+      "m15_K100_eta3_uniform": {
+        "mean": 0.40612905999999993,
+        "std": 0.13328023214685206,
+        "paper": 0.429,
+        "paper_std": 0.133,
+        "delta": -0.022870940000000062,
+        "verdict": "match"
+      },
+      "m15_K100_eta3_omniscient": {
+        "mean": 0.42911080000000007,
+        "std": 0.16085944776158864,
+        "paper": 0.414,
+        "paper_std": 0.058,
+        "delta": 0.01511080000000009,
+        "verdict": "match"
+      },
+      "m15_K100_eta4_uniform": {
+        "mean": 0.37445308000000005,
+        "std": 0.07374773360830023,
+        "paper": 0.42,
+        "paper_std": 0.085,
+        "delta": -0.045546919999999935,
+        "verdict": "match"
+      },
+      "m15_K100_eta4_omniscient": {
+        "mean": 0.42726242,
+        "std": 0.15713979470146958,
+        "paper": 0.412,
+        "paper_std": 0.058,
+        "delta": 0.015262419999999999,
+        "verdict": "match"
+      }
+    },
+    "tally": {
+      "match": 21,
+      "within-noise": 1,
+      "mismatch": 2
+    },
+    "mean_abs_delta": 0.04832265750000001,
+    "missing": []
   }
 }
